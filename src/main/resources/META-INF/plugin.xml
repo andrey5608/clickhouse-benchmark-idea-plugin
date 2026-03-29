@@ -6,50 +6,58 @@
 
     <depends>com.intellij.modules.platform</depends>
 
+    <!--
+        com.intellij.database is OPTIONAL.
+        When present (IDEA Ultimate): DataSource picker lets user pick existing ClickHouse connections.
+        When absent (IDEA Community): plugin falls back to connection settings configured in Tools > ClickHouse Benchmark.
+        All code that imports com.intellij.database.* lives exclusively in clickhouse-benchmark-database.xml
+        and DatabasePluginDataSourceProvider — those classes are never loaded on Community.
+    -->
+    <depends optional="true" config-file="clickhouse-benchmark-database.xml">com.intellij.database</depends>
+
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
 
-        <!-- Tool window for benchmark results -->
         <toolWindow
             id="ClickHouse Benchmark"
             factoryClass="com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow.BenchmarkToolWindowFactory"
             anchor="bottom"
             icon="AllIcons.Debugger.Console"/>
 
-        <!-- Application-level services -->
+        <!-- HTTP benchmark engine + persisted settings (host/port/iterations/warmup) -->
         <applicationService
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseConnectionSettings"/>
-        <applicationService
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkResultsService"/>
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner"/>
 
-        <!-- Project-level service for query execution -->
         <projectService
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.ClickHouseService"/>
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService"/>
 
-        <!-- Settings page under Tools > ClickHouse Benchmark -->
+        <!--
+            DataSourceProvider default impl — returns empty list (Community edition / no DB plugin).
+            Overridden in clickhouse-benchmark-database.xml when com.intellij.database is present.
+        -->
+        <applicationService
+            serviceInterface="com.github.andrey5608.clickhousebenchmarkideaplugin.services.DataSourceProvider"
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.DefaultDataSourceProvider"/>
+
         <applicationConfigurable
             parentId="tools"
-            id="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseSettingsConfigurable"
+            id="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.BenchmarkSettingsConfigurable"
             displayName="ClickHouse Benchmark"
-            instance="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseSettingsConfigurable"/>
+            instance="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.BenchmarkSettingsConfigurable"/>
 
     </extensions>
 
     <actions>
-        <!-- Main action: run selected SQL as benchmark -->
         <action
-            id="ClickHouseBenchmark.RunBenchmark"
+            id="ClickHouseBenchmark.Run"
             class="com.github.andrey5608.clickhousebenchmarkideaplugin.actions.RunBenchmarkAction"
             text="Run as ClickHouse Benchmark"
-            description="Execute the selected SQL query against ClickHouse and record timing/row metrics"
+            description="Execute selected SQL via clickhouse-client and record server-side metrics"
             icon="AllIcons.Actions.Execute">
-            <!-- Tools menu entry -->
             <add-to-group group-id="ToolsMenu" anchor="last"/>
-            <!-- Editor right-click context menu -->
             <add-to-group group-id="EditorPopupMenu" anchor="last"/>
-            <!-- Editor toolbar -->
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift F10"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift B"/>
         </action>
     </actions>
 

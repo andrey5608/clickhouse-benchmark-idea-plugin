@@ -31,10 +31,11 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
 dependencies {
-    // ClickHouse JDBC driver (http fat jar — no transitive deps needed)
+    // ClickHouse JDBC — thin jar + clickhouse-client (transitive), which includes
+    // native TCP socket support. No http classifier = no Apache HTTP Client pulled in.
+    // slf4j-api is excluded because IntelliJ Platform provides it.
     implementation(libs.clickhouse.jdbc) {
-        artifact { classifier = "http" }
-        isTransitive = false
+        exclude(group = "org.slf4j")
     }
 
     testImplementation(libs.junit)
@@ -42,7 +43,7 @@ dependencies {
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea(providers.gradleProperty("platformVersion"))
+        intellijIdeaUltimate(providers.gradleProperty("platformVersion"))
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
         bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })

@@ -1,13 +1,13 @@
 package com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow
 
 import com.github.andrey5608.clickhousebenchmarkideaplugin.model.BenchmarkResult
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkResultsService
+import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
-import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
@@ -21,86 +21,81 @@ import javax.swing.SwingConstants
 import javax.swing.table.AbstractTableModel
 
 class BenchmarkToolWindowFactory : ToolWindowFactory {
-
     override fun createToolWindowContent(project: Project, toolWindow: ToolWindow) {
-        val panel = BenchmarkPanel()
-        val content = ContentFactory.getInstance().createContent(panel, "", false)
-        toolWindow.contentManager.addContent(content)
+        val panel = BenchmarkPanel(project)
+        toolWindow.contentManager.addContent(
+            ContentFactory.getInstance().createContent(panel, "", false)
+        )
     }
 }
 
-private class BenchmarkPanel : JPanel(BorderLayout()) {
+private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
 
-    private val resultsService = BenchmarkResultsService.getInstance()
+    private val history = BenchmarkHistoryService.getInstance(project)
     private val tableModel = BenchmarkTableModel()
     private val table = JBTable(tableModel)
-    private val emptyLabel = JLabel("No benchmark results yet. Select SQL and use 'Run as ClickHouse Benchmark'.", SwingConstants.CENTER)
+    private val emptyLabel = JLabel(
+        "No results — select SQL and press Ctrl+Shift+B",
+        SwingConstants.CENTER
+    )
 
     private val refreshListener: () -> Unit = {
         ApplicationManager.getApplication().invokeLater { refresh() }
     }
 
     init {
-        // Toolbar
-        val actionGroup = DefaultActionGroup().apply {
-            add(object : AnAction("Clear Results", "Remove all benchmark results", AllIcons.Actions.GC) {
-                override fun actionPerformed(e: AnActionEvent) {
-                    resultsService.clearResults()
-                }
+        val group = DefaultActionGroup().apply {
+            add(object : AnAction("Clear History", "Remove all results", AllIcons.Actions.GC) {
+                override fun actionPerformed(e: AnActionEvent) = history.clearHistory()
             })
         }
         val toolbar = ActionManager.getInstance()
-            .createActionToolbar("ClickHouseBenchmarkToolbar", actionGroup, true)
+            .createActionToolbar("ClickHouseBenchmarkToolbar", group, true)
         toolbar.targetComponent = this
         add(toolbar.component, BorderLayout.NORTH)
 
-        // Table setup
         table.setShowGrid(true)
-        table.columnModel.getColumn(COLUMN_QUERY).preferredWidth = 300
-        table.columnModel.getColumn(COLUMN_ELAPSED).preferredWidth = 100
-        table.columnModel.getColumn(COLUMN_ROWS).preferredWidth = 100
-        table.columnModel.getColumn(COLUMN_BYTES).preferredWidth = 100
-        table.columnModel.getColumn(COLUMN_MEMORY).preferredWidth = 120
-        table.columnModel.getColumn(COLUMN_TIME).preferredWidth = 80
-        table.autoResizeMode = JBTable.AUTO_RESIZE_LAST_COLUMN
+        table.autoResizeMode = JBTable.AUTO_RESIZE_OFF
+        Column.entries.forEach { col ->
+            table.columnModel.getColumn(col.ordinal).preferredWidth = col.width
+        }
 
         add(JBScrollPane(table), BorderLayout.CENTER)
-
-        // Register listener and initial state
-        resultsService.addListener(refreshListener)
+        history.addListener(refreshListener)
         refresh()
     }
 
     private fun refresh() {
-        tableModel.updateResults(resultsService.getResults())
+        tableModel.updateResults(history.getResults())
         remove(emptyLabel)
-        if (tableModel.rowCount == 0) {
-            add(emptyLabel, BorderLayout.SOUTH)
-        }
+        if (tableModel.rowCount == 0) add(emptyLabel, BorderLayout.SOUTH)
         revalidate()
         repaint()
     }
 
-    // Clean up listener when the panel is disposed (parent component hierarchy removed)
     override fun removeNotify() {
         super.removeNotify()
-        resultsService.removeListener(refreshListener)
+        history.removeListener(refreshListener)
     }
+}
 
-    companion object {
-        private const val COLUMN_RUN = 0
-        private const val COLUMN_QUERY = 1
-        private const val COLUMN_ELAPSED = 2
-        private const val COLUMN_ROWS = 3
-        private const val COLUMN_BYTES = 4
-        private const val COLUMN_MEMORY = 5
-        private const val COLUMN_TIME = 6
-    }
+private enum class Column(val label: String, val width: Int) {
+    RUN       ("#",          40),
+    CONNECTION("Connection",120),
+    QUERY     ("Query",     300),
+    ITERS     ("N",          40),
+    MIN       ("Min ms",     80),
+    AVG       ("Avg ms",     80),
+    MEDIAN    ("p50 ms",     80),
+    P95       ("p95 ms",     80),
+    P99       ("p99 ms",     80),
+    MAX       ("Max ms",     80),
+    ROWS      ("Rows Read", 100),
+    TIME      ("Time",       70),
 }
 
 private class BenchmarkTableModel : AbstractTableModel() {
 
-    private val columns = arrayOf("#", "Query", "Elapsed (ms)", "Rows Read", "Bytes Read", "Memory (bytes)", "Time")
     private var data: List<BenchmarkResult> = emptyList()
 
     fun updateResults(results: List<BenchmarkResult>) {
@@ -108,29 +103,33 @@ private class BenchmarkTableModel : AbstractTableModel() {
         fireTableDataChanged()
     }
 
-    override fun getRowCount(): Int = data.size
-    override fun getColumnCount(): Int = columns.size
-    override fun getColumnName(col: Int): String = columns[col]
+    override fun getRowCount() = data.size
+    override fun getColumnCount() = Column.entries.size
+    override fun getColumnName(col: Int) = Column.entries[col].label
 
     override fun getValueAt(row: Int, col: Int): Any {
         val r = data[row]
-        return when (col) {
-            0 -> (row + 1)
-            1 -> r.queryPreview
-            2 -> r.elapsedMs
-            3 -> r.rowsRead
-            4 -> r.bytesRead
-            5 -> r.memoryUsageBytes
-            6 -> r.formattedTimestamp
-            else -> ""
+        return when (Column.entries[col]) {
+            Column.RUN        -> row + 1
+            Column.CONNECTION -> r.connectionName
+            Column.QUERY      -> r.queryPreview
+            Column.ITERS      -> r.iterations.size
+            Column.MIN        -> "%.2f".format(r.minMs)
+            Column.AVG        -> "%.2f".format(r.avgMs)
+            Column.MEDIAN     -> "%.2f".format(r.p50Ms)
+            Column.P95        -> "%.2f".format(r.p95Ms)
+            Column.P99        -> "%.2f".format(r.p99Ms)
+            Column.MAX        -> "%.2f".format(r.maxMs)
+            Column.ROWS       -> r.rowsRead
+            Column.TIME       -> r.formattedTimestamp
         }
     }
 
-    override fun getColumnClass(col: Int): Class<*> = when (col) {
-        0 -> Int::class.javaObjectType
-        2, 3, 4, 5 -> Long::class.javaObjectType
-        else -> String::class.java
+    override fun getColumnClass(col: Int) = when (Column.entries[col]) {
+        Column.RUN, Column.ITERS -> Int::class.javaObjectType
+        Column.ROWS              -> Long::class.javaObjectType
+        else                     -> String::class.java
     }
 
-    override fun isCellEditable(row: Int, col: Int): Boolean = false
+    override fun isCellEditable(row: Int, col: Int) = false
 }
