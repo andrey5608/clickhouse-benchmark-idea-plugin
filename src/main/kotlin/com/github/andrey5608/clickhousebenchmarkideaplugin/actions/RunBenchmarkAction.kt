@@ -11,6 +11,7 @@ import com.intellij.openapi.components.service
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
+import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.wm.ToolWindowManager
 
@@ -41,7 +42,7 @@ class RunBenchmarkAction : AnAction() {
             else -> JBPopupFactory.getInstance()
                 .createPopupChooserBuilder(connections)
                 .setTitle("Select ClickHouse DataSource")
-                .setItemTextCustomizer { it.name }
+                .setRenderer(SimpleListCellRenderer.create { label, value, _ -> label.text = value?.name ?: "" })
                 .setMovable(false)
                 .setItemChosenCallback { runBenchmark(project, query, it) }
                 .createPopup()

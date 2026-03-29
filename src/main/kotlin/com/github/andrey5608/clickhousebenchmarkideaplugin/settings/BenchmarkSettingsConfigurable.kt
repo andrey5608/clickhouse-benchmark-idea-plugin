@@ -1,6 +1,7 @@
 package com.github.andrey5608.clickhousebenchmarkideaplugin.settings
 
 import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.ui.Messages
 import com.intellij.ui.components.JBCheckBox
@@ -30,7 +31,7 @@ class BenchmarkSettingsConfigurable : Configurable {
 
     private lateinit var sslEnabledCell: Cell<JBCheckBox>
 
-    private val panel by lazy {
+    private val settingsPanel by lazy {
         panel {
             group("Connection") {
                 row("Host:") {
@@ -58,15 +59,7 @@ class BenchmarkSettingsConfigurable : Configurable {
                     cell(passwordField).columns(COLUMNS_MEDIUM)
                 }
                 row {
-                    button("Test Connection") {
-                        flushPasswordFields()
-                        val msg = runCatching { runner.testConnection() }
-                            .fold(
-                                onSuccess = { "Connection successful" },
-                                onFailure = { "Connection failed:\n${it.message}" }
-                            )
-                        Messages.showInfoMessage(msg, "ClickHouse Benchmark")
-                    }
+                    button("Test Connection") { onTestConnectionClicked() }
                 }
             }
 
@@ -87,7 +80,8 @@ class BenchmarkSettingsConfigurable : Configurable {
                         .comment("sslauth value, e.g. \"certificate\"")
                 }.enabledIf(sslEnabledCell.selected)
 
-                separator("PEM certificates")
+                separator()
+                row { label("PEM certificates") }
 
                 row("Root certificate (CA):") {
                     textField()
@@ -108,7 +102,8 @@ class BenchmarkSettingsConfigurable : Configurable {
                         .comment("sslkey — path to client private key file")
                 }.enabledIf(sslEnabledCell.selected)
 
-                separator("Java Keystore / Truststore")
+                separator()
+                row { label("Java Keystore / Truststore") }
 
                 row("Keystore path:") {
                     textField()
@@ -153,25 +148,46 @@ class BenchmarkSettingsConfigurable : Configurable {
         passwordField.text           = state.password
         keystorePasswordField.text   = state.sslKeystorePassword
         truststorePasswordField.text = state.sslTruststorePassword
-        return panel
+        return settingsPanel
     }
 
     override fun isModified(): Boolean =
-        panel.isModified()
+        settingsPanel.isModified()
             || passwordField.password.concatToString()           != state.password
             || keystorePasswordField.password.concatToString()   != state.sslKeystorePassword
             || truststorePasswordField.password.concatToString() != state.sslTruststorePassword
 
     override fun apply() {
-        panel.apply()
+        settingsPanel.apply()
         flushPasswordFields()
     }
 
     override fun reset() {
-        panel.reset()
+        settingsPanel.reset()
         passwordField.text           = state.password
         keystorePasswordField.text   = state.sslKeystorePassword
         truststorePasswordField.text = state.sslTruststorePassword
+    }
+
+    // Called from the "Test Connection" button. Must be a class-level method (not a DSL lambda)
+    // so that settingsPanel.apply() resolves to the DialogPanel member, not Kotlin stdlib apply{}.
+    private fun onTestConnectionClicked() {
+        // Flush form bindings to state BEFORE reading defaultConnection().
+        // Without this, bindText/bindIntText setters never run and state retains
+        // last-persisted values (default: localhost:9000).
+        settingsPanel.apply()
+        flushPasswordFields()
+        val config = runner.defaultConnection()
+        thisLogger().debug(
+            "Test Connection: host=${config.host} port=${config.port} " +
+            "db=${config.database} user=${config.user} ssl=${config.ssl.enabled}"
+        )
+        val msg = runCatching { runner.testConnection(config) }
+            .fold(
+                onSuccess = { "Connection successful" },
+                onFailure = { "Connection failed:\n${it.message}" }
+            )
+        Messages.showInfoMessage(msg, "ClickHouse Benchmark")
     }
 
     private fun flushPasswordFields() {

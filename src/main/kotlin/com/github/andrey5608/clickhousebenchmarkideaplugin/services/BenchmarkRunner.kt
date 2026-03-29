@@ -9,7 +9,8 @@ import com.intellij.openapi.components.Storage
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import java.sql.Connection
-import java.sql.DriverManager
+import java.sql.Driver
+import java.sql.SQLException
 import java.util.Properties
 
 /**
@@ -21,6 +22,11 @@ import java.util.Properties
  *
  * Native TCP is activated by passing protocol=TCP in the JDBC connection Properties.
  * SSL/TLS is configured through the ssl* properties in [SslConfig] when enabled.
+ *
+ * The driver is loaded via [javaClass.classLoader] (the plugin classloader) and used
+ * directly instead of going through [java.sql.DriverManager]. This avoids the thread
+ * context classloader issues that arise in IntelliJ's plugin sandbox environment where
+ * DriverManager may not see drivers registered by non-system classloaders.
  *
  * Each benchmark run:
  *   1. Opens a single JDBC connection (amortises handshake outside the measurement window).
@@ -86,31 +92,57 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         iterations: Int = myState.iterations,
         warmup: Int = myState.warmup
     ): BenchmarkResult {
-        ensureDriver()
         thisLogger().info(
-            "BenchmarkRunner: warmup=$warmup iterations=$iterations " +
-            "conn=${conn.host}:${conn.port} ssl=${conn.ssl.enabled}"
+            "BenchmarkRunner.run: conn=${conn.host}:${conn.port}/${conn.database} " +
+            "ssl=${conn.ssl.enabled} warmup=$warmup iterations=$iterations"
         )
 
         openConnection(conn).use { jdbc ->
-            repeat(warmup) { executeOnce(jdbc, query) }
-            val stats = List(iterations) { executeOnce(jdbc, query) }
-            return BenchmarkResult(
+            thisLogger().debug("BenchmarkRunner: connection opened, starting warmup ($warmup runs)")
+            repeat(warmup) { i ->
+                executeOnce(jdbc, query).also {
+                    thisLogger().debug("warmup[$i]: ${it.elapsedMs} ms")
+                }
+            }
+
+            thisLogger().debug("BenchmarkRunner: warmup done, starting measurement ($iterations runs)")
+            val stats = List(iterations) { i ->
+                executeOnce(jdbc, query).also {
+                    thisLogger().debug("iter[$i]: ${it.elapsedMs} ms rows=${it.rowsRead}")
+                }
+            }
+
+            val result = BenchmarkResult(
                 query          = query,
                 connectionName = connectionName,
                 iterations     = stats,
                 warmupCount    = warmup
             )
+            thisLogger().info(
+                "BenchmarkRunner.run done: min=${result.minMs} avg=${result.avgMs} " +
+                "p95=${result.p95Ms} p99=${result.p99Ms} max=${result.maxMs} ms"
+            )
+            return result
         }
     }
 
     fun testConnection(conn: ConnectionConfig = defaultConnection()) {
-        ensureDriver()
+        thisLogger().info("BenchmarkRunner.testConnection: ${conn.host}:${conn.port}/${conn.database}")
         openConnection(conn).close()
+        thisLogger().info("BenchmarkRunner.testConnection: success")
     }
 
     // ------------------------------------------------------------------ //
 
+    /**
+     * Opens a JDBC connection by instantiating [com.clickhouse.jdbc.ClickHouseDriver]
+     * directly through the plugin classloader.
+     *
+     * Using [java.sql.DriverManager.getConnection] is unreliable in IntelliJ plugins:
+     * DriverManager performs a classloader-ancestry check that fails when the driver was
+     * loaded by a child (plugin) classloader instead of the system classloader.
+     * Bypassing DriverManager and calling [Driver.connect] directly avoids this.
+     */
     private fun openConnection(conn: ConnectionConfig): Connection {
         val props = Properties().apply {
             setProperty("user", conn.user)
@@ -119,7 +151,28 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             setProperty("protocol", "TCP")
             applySsl(conn.ssl)
         }
-        return DriverManager.getConnection(conn.jdbcUrl(), props)
+
+        val url = conn.jdbcUrl()
+        thisLogger().debug("BenchmarkRunner.openConnection: url=$url ssl=${conn.ssl.enabled}")
+
+        val driverClass = try {
+            Class.forName("com.clickhouse.jdbc.ClickHouseDriver", true, javaClass.classLoader)
+        } catch (e: ClassNotFoundException) {
+            thisLogger().error(
+                "ClickHouse JDBC driver not found in plugin classloader. " +
+                "Plugin must be installed from the distribution zip, not a bare jar.", e
+            )
+            throw RuntimeException(
+                "ClickHouse JDBC driver not found. " +
+                "Please reinstall the plugin using Help > Install Plugin from Disk and select the .zip file.",
+                e
+            )
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        val driver = driverClass.getDeclaredConstructor().newInstance() as Driver
+        return driver.connect(url, props)
+            ?: throw SQLException("ClickHouseDriver.connect returned null for $url — driver may not support this URL")
     }
 
     /**
@@ -132,6 +185,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
 
         setProperty("ssl", "true")
         setProperty("sslmode", ssl.mode)
+        thisLogger().debug("SSL enabled: mode=${ssl.mode} auth=${ssl.auth.ifEmpty { "(none)" }}")
 
         if (ssl.auth.isNotEmpty())            setProperty("sslauth",                  ssl.auth)
         if (ssl.rootCertPath.isNotEmpty())    setProperty("sslrootcert",              ssl.rootCertPath)
@@ -164,10 +218,6 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             rowsRead  = rowsRead,
             bytesRead = 0L
         )
-    }
-
-    private fun ensureDriver() {
-        Class.forName("com.clickhouse.jdbc.ClickHouseDriver")
     }
 
     companion object {

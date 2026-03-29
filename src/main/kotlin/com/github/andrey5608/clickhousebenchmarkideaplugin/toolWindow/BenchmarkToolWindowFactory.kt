@@ -2,6 +2,7 @@ package com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow
 
 import com.github.andrey5608.clickhousebenchmarkideaplugin.model.BenchmarkResult
 import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService
+import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction
@@ -9,6 +10,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.components.JBScrollPane
@@ -45,6 +47,22 @@ private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
 
     init {
         val group = DefaultActionGroup().apply {
+            add(object : AnAction("Test Connection", "Verify ClickHouse connection settings", AllIcons.Debugger.Db_verified_breakpoint) {
+                override fun actionPerformed(e: AnActionEvent) {
+                    ApplicationManager.getApplication().executeOnPooledThread {
+                        try {
+                            BenchmarkRunner.getInstance().testConnection()
+                            ApplicationManager.getApplication().invokeLater {
+                                Messages.showInfoMessage(project, "Connection successful!", "Test Connection")
+                            }
+                        } catch (ex: Exception) {
+                            ApplicationManager.getApplication().invokeLater {
+                                Messages.showErrorDialog(project, ex.message ?: "Unknown error", "Test Connection Failed")
+                            }
+                        }
+                    }
+                }
+            })
             add(object : AnAction("Clear History", "Remove all results", AllIcons.Actions.GC) {
                 override fun actionPerformed(e: AnActionEvent) = history.clearHistory()
             })

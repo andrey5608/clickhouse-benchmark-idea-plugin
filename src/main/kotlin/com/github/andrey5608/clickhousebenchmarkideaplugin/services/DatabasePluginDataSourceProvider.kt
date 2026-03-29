@@ -33,7 +33,7 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
                 host     = extractHost(url ?: ""),
                 port     = extractPort(url ?: ""),
                 database = extractDatabase(url ?: ""),
-                user     = username ?: "default",
+                user     = username,
                 password = "",    // stored in IDE credential store; user can set it in plugin settings
                 ssl      = buildSslConfig(allProps)
             )
