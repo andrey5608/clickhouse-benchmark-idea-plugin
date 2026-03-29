@@ -99,16 +99,16 @@ private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
 
 private enum class Column(val label: String, val width: Int) {
     RUN("#", 40),
-    CONNECTION("Host", 120),
-    QUERY("Query", 300),
-    ITERS("Repeated (times)", 80),
+    CONNECTION("Host", 100),
+    QUERY("Query", 280),
+    ITERS("Repeated (times)", 120),
     MIN("Min (ms)", 80),
     AVG("Avg (ms)", 80),
     MEDIAN("p50 (ms)", 80),
     P95("p95 (ms)", 80),
     P99("p99 (ms)", 80),
     MAX("Max (ms)", 80),
-    ROWS("Rows Read", 100),
+    ROWS("Rows Read", 90),
     TIME("Executed", 70),
 }
 

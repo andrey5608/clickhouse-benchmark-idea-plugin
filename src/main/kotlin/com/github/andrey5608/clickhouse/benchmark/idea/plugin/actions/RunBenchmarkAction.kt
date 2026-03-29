@@ -83,20 +83,20 @@ class RunBenchmarkAction : AnAction() {
         ) {
             override fun run(indicator: ProgressIndicator) {
                 indicator.isIndeterminate = false
-                val total = warmup + iterations
-                var done = 0
-
-                // We can't hook into individual iterations from outside BenchmarkRunner,
-                // so show progress based on a single blocking run.
-                indicator.text = "Warming up ($warmup runs)…"
                 indicator.fraction = 0.0
+                indicator.text = "Connecting…"
 
                 val result = runner.run(
                     query = query,
                     conn = connection.config,
                     connectionName = connection.name,
                     iterations = iterations,
-                    warmup = warmup
+                    warmup = warmup,
+                    onProgress = { done, total ->
+                        val phase = if (done <= warmup) "Warmup" else "Benchmarking"
+                        indicator.text = "$phase… ($done / $total)"
+                        indicator.fraction = done.toDouble() / total
+                    }
                 )
 
                 indicator.fraction = 1.0

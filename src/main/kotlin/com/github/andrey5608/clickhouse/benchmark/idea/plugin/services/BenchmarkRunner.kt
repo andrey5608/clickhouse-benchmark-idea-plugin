@@ -109,18 +109,23 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         conn: ConnectionConfig = defaultConnection(),
         connectionName: String = "${conn.host}:${conn.port}",
         iterations: Int = myState.iterations,
-        warmup: Int = myState.warmup
+        warmup: Int = myState.warmup,
+        /** Called after each warmup or measurement step with (done, total). */
+        onProgress: ((done: Int, total: Int) -> Unit)? = null
     ): BenchmarkResult {
         thisLogger().info(
             "BenchmarkRunner.run: conn=${conn.host}:${conn.port}/${conn.database} " +
             "ssl=${conn.ssl.enabled} warmup=$warmup iterations=$iterations"
         )
+        val total = warmup + iterations
+        var done = 0
 
         openConnection(conn).use { jdbc ->
             thisLogger().info("BenchmarkRunner: connection opened, starting warmup ($warmup runs)")
             repeat(warmup) { i ->
                 executeOnce(jdbc, query).also {
                     thisLogger().info("warmup[$i]: ${it.elapsedMs} ms")
+                    onProgress?.invoke(++done, total)
                 }
             }
 
@@ -128,6 +133,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             val stats = List(iterations) { i ->
                 executeOnce(jdbc, query).also {
                     thisLogger().info("iter[$i]: ${it.elapsedMs} ms rows=${it.rowsRead}")
+                    onProgress?.invoke(++done, total)
                 }
             }
 
@@ -193,7 +199,10 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         }
 
         val url = conn.jdbcUrl()
-        thisLogger().info("BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} ssl=${conn.ssl.enabled}")
+        thisLogger().info(
+            "BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} " +
+            "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds}"
+        )
 
         val driverClass = try {
             Class.forName("com.clickhouse.jdbc.ClickHouseDriver", true, javaClass.classLoader)

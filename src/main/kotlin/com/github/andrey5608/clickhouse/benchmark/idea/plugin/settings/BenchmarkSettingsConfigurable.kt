@@ -83,14 +83,14 @@ class BenchmarkSettingsConfigurable : Configurable {
                     savePasswordCell = checkBox("Save password")
                         .bindSelected({ state.savePassword }, { state.savePassword = it })
                 }
+                row {
+                    button("Test Connection") { onTestConnectionClicked() }
+                }
                 row("Socket timeout (s):") {
                     intTextField(1..3600)
                         .columns(COLUMNS_SHORT)
                         .bindIntText({ state.socketTimeoutSeconds }, { state.socketTimeoutSeconds = it })
-                        .comment("Read timeout per query in seconds (default 300 = 5 min)")
-                }
-                row {
-                    button("Test Connection") { onTestConnectionClicked() }
+                        .comment("Read timeout per query. Default: 300 s (5 min)")
                 }
             }
 
