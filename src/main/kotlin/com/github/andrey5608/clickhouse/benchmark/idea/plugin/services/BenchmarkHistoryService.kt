@@ -28,7 +28,7 @@ class BenchmarkHistoryService : PersistentStateComponent<BenchmarkHistoryService
         companion object {
             fun from(s: IterationStats) = IterationEntry().apply {
                 elapsedMs = s.elapsedMs
-                rowsRead  = s.rowsRead
+                rowsRead = s.rowsRead
                 bytesRead = s.bytesRead
             }
         }
@@ -43,20 +43,20 @@ class BenchmarkHistoryService : PersistentStateComponent<BenchmarkHistoryService
         var iterations: MutableList<IterationEntry> = mutableListOf()
 
         fun toResult() = BenchmarkResult(
-            query          = query,
+            query = query,
             connectionName = connectionName,
-            iterations     = iterations.map { it.toStats() },
-            warmupCount    = warmupCount,
-            timestamp      = timestamp
+            iterations = iterations.map { it.toStats() },
+            warmupCount = warmupCount,
+            timestamp = timestamp
         )
 
         companion object {
             fun from(r: BenchmarkResult) = HistoryEntry().apply {
-                query          = r.query
+                query = r.query
                 connectionName = r.connectionName
-                warmupCount    = r.warmupCount
-                timestamp      = r.timestamp
-                iterations     = r.iterations.map { IterationEntry.from(it) }.toMutableList()
+                warmupCount = r.warmupCount
+                timestamp = r.timestamp
+                iterations = r.iterations.map { IterationEntry.from(it) }.toMutableList()
             }
         }
     }
@@ -69,7 +69,9 @@ class BenchmarkHistoryService : PersistentStateComponent<BenchmarkHistoryService
     private val listeners = CopyOnWriteArrayList<() -> Unit>()
 
     override fun getState(): State = myState
-    override fun loadState(state: State) { myState = state }
+    override fun loadState(state: State) {
+        myState = state
+    }
 
     fun getResults(): List<BenchmarkResult> = myState.entries.map { it.toResult() }
 

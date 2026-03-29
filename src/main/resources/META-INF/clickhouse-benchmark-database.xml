@@ -8,9 +8,9 @@
 
         <!-- Replaces DefaultDataSourceProvider with the Ultimate-aware implementation -->
         <applicationService
-            serviceInterface="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider"
-            serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DatabasePluginDataSourceProvider"
-            overrides="true"/>
+                serviceInterface="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider"
+                serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DatabasePluginDataSourceProvider"
+                overrides="true"/>
 
     </extensions>
 </idea-plugin>

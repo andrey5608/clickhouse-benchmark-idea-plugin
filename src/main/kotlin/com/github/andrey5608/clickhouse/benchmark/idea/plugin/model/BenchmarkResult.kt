@@ -18,15 +18,15 @@ data class BenchmarkResult(
     val timestamp: Long = System.currentTimeMillis()
 ) {
     // Statistical summaries over all measured iterations
-    val minMs: Double   get() = iterations.minOf { it.elapsedMs }
-    val maxMs: Double   get() = iterations.maxOf { it.elapsedMs }
-    val avgMs: Double   get() = iterations.map { it.elapsedMs }.average()
-    val p50Ms: Double   get() = percentile(50.0)
-    val p95Ms: Double   get() = percentile(95.0)
-    val p99Ms: Double   get() = percentile(99.0)
+    val minMs: Double get() = iterations.minOf { it.elapsedMs }
+    val maxMs: Double get() = iterations.maxOf { it.elapsedMs }
+    val avgMs: Double get() = iterations.map { it.elapsedMs }.average()
+    val p50Ms: Double get() = percentile(50.0)
+    val p95Ms: Double get() = percentile(95.0)
+    val p99Ms: Double get() = percentile(99.0)
 
     // Server-side read stats are stable across iterations for the same query
-    val rowsRead: Long  get() = iterations.firstOrNull()?.rowsRead ?: 0L
+    val rowsRead: Long get() = iterations.firstOrNull()?.rowsRead ?: 0L
     val bytesRead: Long get() = iterations.firstOrNull()?.bytesRead ?: 0L
 
     val queryPreview: String

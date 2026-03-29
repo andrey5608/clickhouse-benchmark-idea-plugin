@@ -12,9 +12,9 @@ import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
-import com.intellij.ui.SimpleListCellRenderer
 import com.intellij.openapi.ui.popup.JBPopupFactory
 import com.intellij.openapi.wm.ToolWindowManager
+import com.intellij.ui.SimpleListCellRenderer
 
 class RunBenchmarkAction : AnAction() {
 
@@ -68,13 +68,13 @@ class RunBenchmarkAction : AnAction() {
         val history = BenchmarkHistoryService.getInstance(project)
 
         val dialog = BenchmarkRunDialog(
-            defaultWarmup     = runner.state.warmup,
+            defaultWarmup = runner.state.warmup,
             defaultIterations = runner.state.iterations,
         )
         if (!dialog.showAndGet()) return   // user cancelled
 
         val iterations = dialog.iterations
-        val warmup     = dialog.warmup
+        val warmup = dialog.warmup
 
         object : Task.Backgroundable(
             project,

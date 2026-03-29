@@ -31,8 +31,8 @@ class BenchmarkSettingsConfigurable : Configurable {
 
     // Sensitive fields handled outside the panel binding (JBPasswordField masks input
     // and returns char[] — bindText is not appropriate for these)
-    private val passwordField          = JBPasswordField()
-    private val keystorePasswordField  = JBPasswordField()
+    private val passwordField = JBPasswordField()
+    private val keystorePasswordField = JBPasswordField()
     private val truststorePasswordField = JBPasswordField()
 
     private lateinit var savePasswordCell: Cell<JBCheckBox>
@@ -176,17 +176,17 @@ class BenchmarkSettingsConfigurable : Configurable {
     override fun getDisplayName(): String = "ClickHouse Benchmark"
 
     override fun createComponent(): JComponent {
-        passwordField.text           = runner.getPassword()
-        keystorePasswordField.text   = runner.getSslKeystorePassword()
+        passwordField.text = runner.getPassword()
+        keystorePasswordField.text = runner.getSslKeystorePassword()
         truststorePasswordField.text = runner.getSslTruststorePassword()
         return settingsPanel
     }
 
     override fun isModified(): Boolean =
         settingsPanel.isModified()
-            || passwordField.password.concatToString()           != runner.getPassword()
-            || keystorePasswordField.password.concatToString()   != runner.getSslKeystorePassword()
-            || truststorePasswordField.password.concatToString() != runner.getSslTruststorePassword()
+                || passwordField.password.concatToString() != runner.getPassword()
+                || keystorePasswordField.password.concatToString() != runner.getSslKeystorePassword()
+                || truststorePasswordField.password.concatToString() != runner.getSslTruststorePassword()
 
     override fun apply() {
         settingsPanel.apply()
@@ -195,8 +195,8 @@ class BenchmarkSettingsConfigurable : Configurable {
 
     override fun reset() {
         settingsPanel.reset()
-        passwordField.text           = runner.getPassword()
-        keystorePasswordField.text   = runner.getSslKeystorePassword()
+        passwordField.text = runner.getPassword()
+        keystorePasswordField.text = runner.getSslKeystorePassword()
         truststorePasswordField.text = runner.getSslTruststorePassword()
     }
 
@@ -225,32 +225,32 @@ class BenchmarkSettingsConfigurable : Configurable {
     /** Builds a [ConnectionConfig] directly from live form-field values without mutating state. */
     private fun currentConnectionConfig(): ConnectionConfig {
         val ssl = SslConfig(
-            enabled        = sslEnabledCell.component.isSelected,
-            mode           = sslModeCell.component.selectedItem as? String ?: "strict",
-            auth           = sslAuthCell.component.text,
-            rootCertPath   = sslRootCertCell.component.text,
+            enabled = sslEnabledCell.component.isSelected,
+            mode = sslModeCell.component.selectedItem as? String ?: "strict",
+            auth = sslAuthCell.component.text,
+            rootCertPath = sslRootCertCell.component.text,
             clientCertPath = sslClientCertCell.component.text,
-            clientKeyPath  = sslClientKeyCell.component.text,
-            keystorePath   = sslKeystorePathCell.component.text,
+            clientKeyPath = sslClientKeyCell.component.text,
+            keystorePath = sslKeystorePathCell.component.text,
             keystorePassword = keystorePasswordField.password.concatToString(),
-            truststorePath   = sslTruststorePathCell.component.text,
+            truststorePath = sslTruststorePathCell.component.text,
             truststorePassword = truststorePasswordField.password.concatToString(),
         )
         return ConnectionConfig(
-            host     = hostCell.component.text,
-            port     = portCell.component.text.toIntOrNull() ?: 9000,
+            host = hostCell.component.text,
+            port = portCell.component.text.toIntOrNull() ?: 9000,
             database = databaseCell.component.text,
-            user     = userCell.component.text,
+            user = userCell.component.text,
             password = passwordField.password.concatToString(),
-            ssl      = ssl,
+            ssl = ssl,
         )
     }
 
     private fun flushPasswordFields() {
         runner.savePasswords(
-            save               = savePasswordCell.component.isSelected,
-            password           = passwordField.password.concatToString(),
-            keystorePassword   = keystorePasswordField.password.concatToString(),
+            save = savePasswordCell.component.isSelected,
+            password = passwordField.password.concatToString(),
+            keystorePassword = keystorePasswordField.password.concatToString(),
             truststorePassword = truststorePasswordField.password.concatToString()
         )
     }

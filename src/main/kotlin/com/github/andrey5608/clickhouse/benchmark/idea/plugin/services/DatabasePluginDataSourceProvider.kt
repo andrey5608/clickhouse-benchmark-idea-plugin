@@ -22,20 +22,20 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
     private fun LocalDataSource.isClickHouse(): Boolean {
         val url = url ?: return false
         return url.contains("clickhouse", ignoreCase = true)
-            || driverClass?.contains("clickhouse", ignoreCase = true) == true
+                || driverClass?.contains("clickhouse", ignoreCase = true) == true
     }
 
     private fun LocalDataSource.toNamedConnection(): DataSourceProvider.NamedConnection {
         val allProps = resolveAllJdbcProps()
         return DataSourceProvider.NamedConnection(
-            name   = name,
+            name = name,
             config = ConnectionConfig(
-                host     = extractHost(url ?: ""),
-                port     = extractPort(url ?: ""),
+                host = extractHost(url ?: ""),
+                port = extractPort(url ?: ""),
                 database = extractDatabase(url ?: ""),
-                user     = username,
+                user = username,
                 password = "",    // stored in IDE credential store; user can set it in plugin settings
-                ssl      = buildSslConfig(allProps)
+                ssl = buildSslConfig(allProps)
             )
         )
     }
@@ -70,18 +70,18 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
             keys.firstNotNullOfOrNull { props[it]?.takeIf(String::isNotEmpty) } ?: ""
 
         val enabled = get("ssl").equals("true", ignoreCase = true)
-        val mode    = get("sslmode")
+        val mode = get("sslmode")
 
         return SslConfig(
-            enabled            = enabled || (mode.isNotEmpty() && mode != "none"),
-            mode               = mode.ifEmpty { if (enabled) "strict" else "none" },
-            auth               = get("sslauth"),
-            rootCertPath       = get("sslrootcert",          "ssl_root_certificate"),
-            clientCertPath     = get("sslcert",              "ssl_client_certificate"),
-            clientKeyPath      = get("sslkey",               "ssl_client_key"),
-            keystorePath       = get("ssl_keystore_path"),
-            keystorePassword   = get("ssl_keystore_password"),
-            truststorePath     = get("ssl_truststore_path"),
+            enabled = enabled || (mode.isNotEmpty() && mode != "none"),
+            mode = mode.ifEmpty { if (enabled) "strict" else "none" },
+            auth = get("sslauth"),
+            rootCertPath = get("sslrootcert", "ssl_root_certificate"),
+            clientCertPath = get("sslcert", "ssl_client_certificate"),
+            clientKeyPath = get("sslkey", "ssl_client_key"),
+            keystorePath = get("ssl_keystore_path"),
+            keystorePassword = get("ssl_keystore_password"),
+            truststorePath = get("ssl_truststore_path"),
             truststorePassword = get("ssl_truststore_password")
         )
     }

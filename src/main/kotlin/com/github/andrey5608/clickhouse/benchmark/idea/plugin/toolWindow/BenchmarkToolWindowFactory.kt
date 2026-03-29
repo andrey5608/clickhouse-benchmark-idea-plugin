@@ -47,7 +47,11 @@ private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
 
     init {
         val group = DefaultActionGroup().apply {
-            add(object : AnAction("Test Connection", "Verify ClickHouse connection settings", AllIcons.Debugger.Db_verified_breakpoint) {
+            add(object : AnAction(
+                "Test Connection",
+                "Verify ClickHouse connection settings",
+                AllIcons.Debugger.Db_verified_breakpoint
+            ) {
                 override fun actionPerformed(e: AnActionEvent) {
                     ApplicationManager.getApplication().executeOnPooledThread {
                         try {
@@ -57,7 +61,11 @@ private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
                             }
                         } catch (ex: Exception) {
                             ApplicationManager.getApplication().invokeLater {
-                                Messages.showErrorDialog(project, ex.message ?: "Unknown error", "Test Connection Failed")
+                                Messages.showErrorDialog(
+                                    project,
+                                    ex.message ?: "Unknown error",
+                                    "Test Connection Failed"
+                                )
                             }
                         }
                     }
@@ -128,25 +136,25 @@ private class BenchmarkTableModel : AbstractTableModel() {
     override fun getValueAt(row: Int, col: Int): Any {
         val r = data[row]
         return when (Column.entries[col]) {
-            Column.RUN        -> row + 1
+            Column.RUN -> row + 1
             Column.CONNECTION -> r.connectionName
-            Column.QUERY      -> r.queryPreview
-            Column.ITERS      -> r.iterations.size
-            Column.MIN        -> "%.2f".format(r.minMs)
-            Column.AVG        -> "%.2f".format(r.avgMs)
-            Column.MEDIAN     -> "%.2f".format(r.p50Ms)
-            Column.P95        -> "%.2f".format(r.p95Ms)
-            Column.P99        -> "%.2f".format(r.p99Ms)
-            Column.MAX        -> "%.2f".format(r.maxMs)
-            Column.ROWS       -> r.rowsRead
-            Column.TIME       -> r.formattedTimestamp
+            Column.QUERY -> r.queryPreview
+            Column.ITERS -> r.iterations.size
+            Column.MIN -> "%.2f".format(r.minMs)
+            Column.AVG -> "%.2f".format(r.avgMs)
+            Column.MEDIAN -> "%.2f".format(r.p50Ms)
+            Column.P95 -> "%.2f".format(r.p95Ms)
+            Column.P99 -> "%.2f".format(r.p99Ms)
+            Column.MAX -> "%.2f".format(r.maxMs)
+            Column.ROWS -> r.rowsRead
+            Column.TIME -> r.formattedTimestamp
         }
     }
 
     override fun getColumnClass(col: Int) = when (Column.entries[col]) {
         Column.RUN, Column.ITERS -> Int::class.javaObjectType
-        Column.ROWS              -> Long::class.javaObjectType
-        else                     -> String::class.java
+        Column.ROWS -> Long::class.javaObjectType
+        else -> String::class.java
     }
 
     override fun isCellEditable(row: Int, col: Int) = false

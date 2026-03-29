@@ -12,9 +12,11 @@ Plugin scaffolded with IntelliJ Platform Gradle Plugin v2 (version 2.13.1), targ
 
 ## Key files
 
-- `build.gradle.kts` — adds `com.clickhouse:clickhouse-jdbc:0.6.5` with `http` classifier (fat jar, `isTransitive = false`)
+- `build.gradle.kts` — adds `com.clickhouse:clickhouse-jdbc:0.6.5` with `http` classifier (fat jar,
+  `isTransitive = false`)
 - `gradle/libs.versions.toml` — version catalog including `clickhouseJdbc = "0.6.5"`
-- `gradle.properties` — plugin group `com.github.andrey5608.clickhousebenchmarkideaplugin`, `platformVersion = 2025.2.6.1`
+- `gradle.properties` — plugin group `com.github.andrey5608.clickhousebenchmarkideaplugin`,
+  `platformVersion = 2025.2.6.1`
 
 ## Source packages
 
@@ -31,6 +33,7 @@ src/main/kotlin/.../
 ```
 
 ## plugin.xml registrations
+
 - applicationService: ClickHouseConnectionSettings, BenchmarkResultsService
 - projectService: ClickHouseService
 - applicationConfigurable (parentId=tools): ClickHouseSettingsConfigurable
@@ -38,7 +41,9 @@ src/main/kotlin/.../
 - action id="ClickHouseBenchmark.RunBenchmark": RunBenchmarkAction (ToolsMenu + EditorPopupMenu + Ctrl+Shift+F10)
 
 ## JDBC approach
+
 - URL: `jdbc:ch://host:port/database`
 - Driver class: `com.clickhouse.jdbc.ClickHouseDriver`
-- TODO: set `query_id` via `SET query_id='...'`, then after query run queries `system.query_log` for `read_bytes` / `memory_usage`
+- TODO: set `query_id` via `SET query_id='...'`, then after query run queries `system.query_log` for `read_bytes` /
+  `memory_usage`
 - Row count from iterating ResultSet (client-side)

@@ -78,28 +78,28 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         // Pre-populate session passwords from PasswordSafe so the connection works immediately
         // after IDE restart if savePassword was previously enabled.
         if (state.savePassword) {
-            sessionPassword           = readCredential(CRED_KEY_CONNECTION)
-            sessionKeystorePassword   = readCredential(CRED_KEY_KEYSTORE)
+            sessionPassword = readCredential(CRED_KEY_CONNECTION)
+            sessionKeystorePassword = readCredential(CRED_KEY_KEYSTORE)
             sessionTruststorePassword = readCredential(CRED_KEY_TRUSTSTORE)
         }
     }
 
     fun defaultConnection() = ConnectionConfig(
-        host     = myState.host,
-        port     = myState.port,
+        host = myState.host,
+        port = myState.port,
         database = myState.database,
-        user     = myState.user,
+        user = myState.user,
         password = getPassword(),
-        ssl      = SslConfig(
-            enabled            = myState.sslEnabled,
-            mode               = myState.sslMode,
-            auth               = myState.sslAuth,
-            rootCertPath       = myState.sslRootCertPath,
-            clientCertPath     = myState.sslClientCertPath,
-            clientKeyPath      = myState.sslClientKeyPath,
-            keystorePath       = myState.sslKeystorePath,
-            keystorePassword   = getSslKeystorePassword(),
-            truststorePath     = myState.sslTruststorePath,
+        ssl = SslConfig(
+            enabled = myState.sslEnabled,
+            mode = myState.sslMode,
+            auth = myState.sslAuth,
+            rootCertPath = myState.sslRootCertPath,
+            clientCertPath = myState.sslClientCertPath,
+            clientKeyPath = myState.sslClientKeyPath,
+            keystorePath = myState.sslKeystorePath,
+            keystorePassword = getSslKeystorePassword(),
+            truststorePath = myState.sslTruststorePath,
             truststorePassword = getSslTruststorePassword()
         )
     )
@@ -115,7 +115,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
     ): BenchmarkResult {
         thisLogger().info(
             "BenchmarkRunner.run: conn=${conn.host}:${conn.port}/${conn.database} " +
-            "ssl=${conn.ssl.enabled} warmup=$warmup iterations=$iterations"
+                    "ssl=${conn.ssl.enabled} warmup=$warmup iterations=$iterations"
         )
         val total = warmup + iterations
         var done = 0
@@ -138,14 +138,14 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             }
 
             val result = BenchmarkResult(
-                query          = query,
+                query = query,
                 connectionName = connectionName,
-                iterations     = stats,
-                warmupCount    = warmup
+                iterations = stats,
+                warmupCount = warmup
             )
             thisLogger().info(
                 "BenchmarkRunner.run done: min=${result.minMs} avg=${result.avgMs} " +
-                "p95=${result.p95Ms} p99=${result.p99Ms} max=${result.maxMs} ms"
+                        "p95=${result.p95Ms} p99=${result.p99Ms} max=${result.maxMs} ms"
             )
             return result
         }
@@ -155,11 +155,11 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         val ssl = conn.ssl
         thisLogger().info(
             "Test Connection: url=${conn.jdbcUrlSafe()} " +
-            "ssl.enabled=${ssl.enabled}" +
-            if (ssl.enabled) " ssl.mode=${ssl.mode} ssl.auth=${ssl.auth} " +
-                "rootCert=${ssl.rootCertPath} clientCert=${ssl.clientCertPath} clientKey=${ssl.clientKeyPath} " +
-                "keystore=${ssl.keystorePath} truststore=${ssl.truststorePath}"
-            else ""
+                    "ssl.enabled=${ssl.enabled}" +
+                    if (ssl.enabled) " ssl.mode=${ssl.mode} ssl.auth=${ssl.auth} " +
+                            "rootCert=${ssl.rootCertPath} clientCert=${ssl.clientCertPath} clientKey=${ssl.clientKeyPath} " +
+                            "keystore=${ssl.keystorePath} truststore=${ssl.truststorePath}"
+                    else ""
         )
         val start = System.currentTimeMillis()
         try {
@@ -201,7 +201,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         val url = conn.jdbcUrl()
         thisLogger().info(
             "BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} " +
-            "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds}"
+                    "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds}"
         )
 
         val driverClass = try {
@@ -209,11 +209,11 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         } catch (e: ClassNotFoundException) {
             thisLogger().error(
                 "ClickHouse JDBC driver not found in plugin classloader. " +
-                "Plugin must be installed from the distribution zip, not a bare jar.", e
+                        "Plugin must be installed from the distribution zip, not a bare jar.", e
             )
             throw RuntimeException(
                 "ClickHouse JDBC driver not found. " +
-                "Please reinstall the plugin using Help > Install Plugin from Disk and select the .zip file.",
+                        "Please reinstall the plugin using Help > Install Plugin from Disk and select the .zip file.",
                 e
             )
         }
@@ -236,16 +236,16 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         setProperty("sslmode", ssl.mode)
         thisLogger().info("SSL enabled: mode=${ssl.mode} auth=${ssl.auth.ifEmpty { "(none)" }}")
 
-        if (ssl.auth.isNotEmpty())            setProperty("sslauth",                  ssl.auth)
-        if (ssl.rootCertPath.isNotEmpty())    setProperty("sslrootcert",              ssl.rootCertPath)
-        if (ssl.clientCertPath.isNotEmpty())  setProperty("sslcert",                  ssl.clientCertPath)
-        if (ssl.clientKeyPath.isNotEmpty())   setProperty("sslkey",                   ssl.clientKeyPath)
+        if (ssl.auth.isNotEmpty()) setProperty("sslauth", ssl.auth)
+        if (ssl.rootCertPath.isNotEmpty()) setProperty("sslrootcert", ssl.rootCertPath)
+        if (ssl.clientCertPath.isNotEmpty()) setProperty("sslcert", ssl.clientCertPath)
+        if (ssl.clientKeyPath.isNotEmpty()) setProperty("sslkey", ssl.clientKeyPath)
         if (ssl.keystorePath.isNotEmpty()) {
-            setProperty("ssl_keystore_path",     ssl.keystorePath)
+            setProperty("ssl_keystore_path", ssl.keystorePath)
             setProperty("ssl_keystore_password", ssl.keystorePassword)
         }
         if (ssl.truststorePath.isNotEmpty()) {
-            setProperty("ssl_truststore_path",     ssl.truststorePath)
+            setProperty("ssl_truststore_path", ssl.truststorePath)
             setProperty("ssl_truststore_password", ssl.truststorePassword)
         }
     }
@@ -264,7 +264,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
 
         return IterationStats(
             elapsedMs = (System.nanoTime() - t0) / 1_000_000.0,
-            rowsRead  = rowsRead,
+            rowsRead = rowsRead,
             bytesRead = 0L
         )
     }
@@ -281,8 +281,8 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
      * When [save] is false the PasswordSafe entries are cleared — passwords live in memory only.
      */
     fun savePasswords(save: Boolean, password: String, keystorePassword: String, truststorePassword: String) {
-        sessionPassword           = password
-        sessionKeystorePassword   = keystorePassword
+        sessionPassword = password
+        sessionKeystorePassword = keystorePassword
         sessionTruststorePassword = truststorePassword
 
         if (save) {
@@ -312,10 +312,10 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
     }
 
     companion object {
-        private const val PLUGIN_SERVICE  = "com.github.andrey5608.clickhouse.benchmark.idea.plugin"
-        private const val CRED_KEY_CONNECTION  = "connection"
-        private const val CRED_KEY_KEYSTORE    = "sslKeystore"
-        private const val CRED_KEY_TRUSTSTORE  = "sslTruststore"
+        private const val PLUGIN_SERVICE = "com.github.andrey5608.clickhouse.benchmark.idea.plugin"
+        private const val CRED_KEY_CONNECTION = "connection"
+        private const val CRED_KEY_KEYSTORE = "sslKeystore"
+        private const val CRED_KEY_TRUSTSTORE = "sslTruststore"
 
         fun getInstance(): BenchmarkRunner = service()
     }
