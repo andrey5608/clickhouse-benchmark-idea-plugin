@@ -1,7 +1,7 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.andrey5608.clickhousebenchmarkideaplugin</id>
-    <name>clickhouse-benchmark-idea-plugin</name>
+    <name>ClickHouse Benchmark</name>
     <vendor>andrey5608</vendor>
 
     <depends>com.intellij.modules.platform</depends>
@@ -9,7 +9,48 @@
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
-        <postStartupActivity implementation="com.github.andrey5608.clickhousebenchmarkideaplugin.startup.MyProjectActivity" />
+
+        <!-- Tool window for benchmark results -->
+        <toolWindow
+            id="ClickHouse Benchmark"
+            factoryClass="com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow.BenchmarkToolWindowFactory"
+            anchor="bottom"
+            icon="AllIcons.Debugger.Console"/>
+
+        <!-- Application-level services -->
+        <applicationService
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseConnectionSettings"/>
+        <applicationService
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkResultsService"/>
+
+        <!-- Project-level service for query execution -->
+        <projectService
+            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.ClickHouseService"/>
+
+        <!-- Settings page under Tools > ClickHouse Benchmark -->
+        <applicationConfigurable
+            parentId="tools"
+            id="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseSettingsConfigurable"
+            displayName="ClickHouse Benchmark"
+            instance="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.ClickHouseSettingsConfigurable"/>
+
     </extensions>
+
+    <actions>
+        <!-- Main action: run selected SQL as benchmark -->
+        <action
+            id="ClickHouseBenchmark.RunBenchmark"
+            class="com.github.andrey5608.clickhousebenchmarkideaplugin.actions.RunBenchmarkAction"
+            text="Run as ClickHouse Benchmark"
+            description="Execute the selected SQL query against ClickHouse and record timing/row metrics"
+            icon="AllIcons.Actions.Execute">
+            <!-- Tools menu entry -->
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+            <!-- Editor right-click context menu -->
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <!-- Editor toolbar -->
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift F10"/>
+        </action>
+    </actions>
+
 </idea-plugin>
