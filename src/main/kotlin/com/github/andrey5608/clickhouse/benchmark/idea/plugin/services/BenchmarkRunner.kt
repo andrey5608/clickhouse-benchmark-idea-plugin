@@ -51,6 +51,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         var user: String = "default",
         var iterations: Int = 10,
         var warmup: Int = 3,
+        var savePassword: Boolean = false,
         // SSL — flat fields for clean XML serialisation
         var sslEnabled: Boolean = false,
         var sslMode: String = "strict",
@@ -63,8 +64,23 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
     )
 
     private var myState = State()
+
+    // In-memory passwords for the current session (used when savePassword = false)
+    private var sessionPassword: String = ""
+    private var sessionKeystorePassword: String = ""
+    private var sessionTruststorePassword: String = ""
+
     override fun getState(): State = myState
-    override fun loadState(state: State) { myState = state }
+    override fun loadState(state: State) {
+        myState = state
+        // Pre-populate session passwords from PasswordSafe so the connection works immediately
+        // after IDE restart if savePassword was previously enabled.
+        if (state.savePassword) {
+            sessionPassword           = readCredential(CRED_KEY_CONNECTION)
+            sessionKeystorePassword   = readCredential(CRED_KEY_KEYSTORE)
+            sessionTruststorePassword = readCredential(CRED_KEY_TRUSTSTORE)
+        }
+    }
 
     fun defaultConnection() = ConnectionConfig(
         host     = myState.host,
@@ -242,14 +258,29 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
 
     // --- PasswordSafe helpers ---
 
-    fun getPassword(): String = readCredential(CRED_KEY_CONNECTION)
-    fun getSslKeystorePassword(): String = readCredential(CRED_KEY_KEYSTORE)
-    fun getSslTruststorePassword(): String = readCredential(CRED_KEY_TRUSTSTORE)
+    fun getPassword(): String = sessionPassword
+    fun getSslKeystorePassword(): String = sessionKeystorePassword
+    fun getSslTruststorePassword(): String = sessionTruststorePassword
 
-    fun savePasswords(password: String, keystorePassword: String, truststorePassword: String) {
-        writeCredential(CRED_KEY_CONNECTION, password)
-        writeCredential(CRED_KEY_KEYSTORE, keystorePassword)
-        writeCredential(CRED_KEY_TRUSTSTORE, truststorePassword)
+    /**
+     * Persists (or clears) passwords.
+     * When [save] is true passwords are written to PasswordSafe so they survive IDE restarts.
+     * When [save] is false the PasswordSafe entries are cleared — passwords live in memory only.
+     */
+    fun savePasswords(save: Boolean, password: String, keystorePassword: String, truststorePassword: String) {
+        sessionPassword           = password
+        sessionKeystorePassword   = keystorePassword
+        sessionTruststorePassword = truststorePassword
+
+        if (save) {
+            writeCredential(CRED_KEY_CONNECTION, password)
+            writeCredential(CRED_KEY_KEYSTORE, keystorePassword)
+            writeCredential(CRED_KEY_TRUSTSTORE, truststorePassword)
+        } else {
+            clearCredential(CRED_KEY_CONNECTION)
+            clearCredential(CRED_KEY_KEYSTORE)
+            clearCredential(CRED_KEY_TRUSTSTORE)
+        }
     }
 
     private fun readCredential(key: String): String {
@@ -260,6 +291,11 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
     private fun writeCredential(key: String, password: String) {
         val attrs = CredentialAttributes(generateServiceName(PLUGIN_SERVICE, key))
         PasswordSafe.instance.set(attrs, Credentials("", password))
+    }
+
+    private fun clearCredential(key: String) {
+        val attrs = CredentialAttributes(generateServiceName(PLUGIN_SERVICE, key))
+        PasswordSafe.instance.set(attrs, null)
     }
 
     companion object {

@@ -35,6 +35,7 @@ class BenchmarkSettingsConfigurable : Configurable {
     private val keystorePasswordField  = JBPasswordField()
     private val truststorePasswordField = JBPasswordField()
 
+    private lateinit var savePasswordCell: Cell<JBCheckBox>
     private lateinit var sslEnabledCell: Cell<JBCheckBox>
 
     // Cell references for connection fields — used by currentConnectionConfig() so that
@@ -77,6 +78,10 @@ class BenchmarkSettingsConfigurable : Configurable {
                 }
                 row("Password:") {
                     cell(passwordField).columns(COLUMNS_MEDIUM)
+                }
+                row {
+                    savePasswordCell = checkBox("Save password")
+                        .bindSelected({ state.savePassword }, { state.savePassword = it })
                 }
                 row {
                     button("Test Connection") { onTestConnectionClicked() }
@@ -237,6 +242,7 @@ class BenchmarkSettingsConfigurable : Configurable {
 
     private fun flushPasswordFields() {
         runner.savePasswords(
+            save               = savePasswordCell.component.isSelected,
             password           = passwordField.password.concatToString(),
             keystorePassword   = keystorePasswordField.password.concatToString(),
             truststorePassword = truststorePasswordField.password.concatToString()
