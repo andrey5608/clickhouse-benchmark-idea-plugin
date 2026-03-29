@@ -52,6 +52,8 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         var iterations: Int = 10,
         var warmup: Int = 3,
         var savePassword: Boolean = false,
+        /** Socket (read) timeout in seconds. Default 300 s = 5 min. */
+        var socketTimeoutSeconds: Int = 300,
         // SSL — flat fields for clean XML serialisation
         var sslEnabled: Boolean = false,
         var sslMode: String = "strict",
@@ -185,6 +187,8 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             // driver mis-reads the HTTP response body as an LZ4 block, hitting the
             // "Magic is not correct — expect [-126] but got [37]" IOException.
             setProperty("compress", "0")
+            // Socket (read) timeout in milliseconds. Avoids silent hangs on slow/unresponsive hosts.
+            setProperty("socket_timeout", (myState.socketTimeoutSeconds * 1_000).toString())
             applySsl(conn.ssl)
         }
 

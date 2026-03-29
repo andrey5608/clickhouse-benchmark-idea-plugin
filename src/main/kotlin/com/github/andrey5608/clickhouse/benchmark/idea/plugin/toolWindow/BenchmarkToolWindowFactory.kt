@@ -98,18 +98,18 @@ private class BenchmarkPanel(project: Project) : JPanel(BorderLayout()) {
 }
 
 private enum class Column(val label: String, val width: Int) {
-    RUN       ("#",          40),
-    CONNECTION("Host",      120),
-    QUERY     ("Query",              300),
-    ITERS     ("Repeated (times)",  40),
-    MIN       ("Min (ms)",          80),
-    AVG       ("Avg (ms)",     80),
-    MEDIAN    ("p50 (ms)",     80),
-    P95       ("p95 (ms)",     80),
-    P99       ("p99 (ms)",     80),
-    MAX       ("Max (ms)",     80),
-    ROWS      ("Rows Read", 100),
-    TIME      ("Time",       70),
+    RUN("#", 40),
+    CONNECTION("Host", 120),
+    QUERY("Query", 300),
+    ITERS("Repeated (times)", 80),
+    MIN("Min (ms)", 80),
+    AVG("Avg (ms)", 80),
+    MEDIAN("p50 (ms)", 80),
+    P95("p95 (ms)", 80),
+    P99("p99 (ms)", 80),
+    MAX("Max (ms)", 80),
+    ROWS("Rows Read", 100),
+    TIME("Executed", 70),
 }
 
 private class BenchmarkTableModel : AbstractTableModel() {
