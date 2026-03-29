@@ -1,4 +1,4 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin
 
 import com.intellij.DynamicBundle
 import org.jetbrains.annotations.NonNls

@@ -1,7 +1,11 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.services
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
-import com.github.andrey5608.clickhousebenchmarkideaplugin.model.BenchmarkResult
-import com.github.andrey5608.clickhousebenchmarkideaplugin.model.IterationStats
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.model.BenchmarkResult
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.model.IterationStats
+import com.intellij.credentialStore.CredentialAttributes
+import com.intellij.credentialStore.Credentials
+import com.intellij.credentialStore.generateServiceName
+import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State
@@ -45,7 +49,6 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         var port: Int = 9000,
         var database: String = "default",
         var user: String = "default",
-        var password: String = "",
         var iterations: Int = 10,
         var warmup: Int = 3,
         // SSL — flat fields for clean XML serialisation
@@ -56,9 +59,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         var sslClientCertPath: String = "",
         var sslClientKeyPath: String = "",
         var sslKeystorePath: String = "",
-        var sslKeystorePassword: String = "",
-        var sslTruststorePath: String = "",
-        var sslTruststorePassword: String = ""
+        var sslTruststorePath: String = ""
     )
 
     private var myState = State()
@@ -70,7 +71,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         port     = myState.port,
         database = myState.database,
         user     = myState.user,
-        password = myState.password,
+        password = getPassword(),
         ssl      = SslConfig(
             enabled            = myState.sslEnabled,
             mode               = myState.sslMode,
@@ -79,9 +80,9 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             clientCertPath     = myState.sslClientCertPath,
             clientKeyPath      = myState.sslClientKeyPath,
             keystorePath       = myState.sslKeystorePath,
-            keystorePassword   = myState.sslKeystorePassword,
+            keystorePassword   = getSslKeystorePassword(),
             truststorePath     = myState.sslTruststorePath,
-            truststorePassword = myState.sslTruststorePassword
+            truststorePassword = getSslTruststorePassword()
         )
     )
 
@@ -98,17 +99,17 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         )
 
         openConnection(conn).use { jdbc ->
-            thisLogger().debug("BenchmarkRunner: connection opened, starting warmup ($warmup runs)")
+            thisLogger().info("BenchmarkRunner: connection opened, starting warmup ($warmup runs)")
             repeat(warmup) { i ->
                 executeOnce(jdbc, query).also {
-                    thisLogger().debug("warmup[$i]: ${it.elapsedMs} ms")
+                    thisLogger().info("warmup[$i]: ${it.elapsedMs} ms")
                 }
             }
 
-            thisLogger().debug("BenchmarkRunner: warmup done, starting measurement ($iterations runs)")
+            thisLogger().info("BenchmarkRunner: warmup done, starting measurement ($iterations runs)")
             val stats = List(iterations) { i ->
                 executeOnce(jdbc, query).also {
-                    thisLogger().debug("iter[$i]: ${it.elapsedMs} ms rows=${it.rowsRead}")
+                    thisLogger().info("iter[$i]: ${it.elapsedMs} ms rows=${it.rowsRead}")
                 }
             }
 
@@ -127,9 +128,23 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
     }
 
     fun testConnection(conn: ConnectionConfig = defaultConnection()) {
-        thisLogger().info("BenchmarkRunner.testConnection: ${conn.host}:${conn.port}/${conn.database}")
-        openConnection(conn).close()
-        thisLogger().info("BenchmarkRunner.testConnection: success")
+        val ssl = conn.ssl
+        thisLogger().info(
+            "Test Connection: url=${conn.jdbcUrlSafe()} " +
+            "ssl.enabled=${ssl.enabled}" +
+            if (ssl.enabled) " ssl.mode=${ssl.mode} ssl.auth=${ssl.auth} " +
+                "rootCert=${ssl.rootCertPath} clientCert=${ssl.clientCertPath} clientKey=${ssl.clientKeyPath} " +
+                "keystore=${ssl.keystorePath} truststore=${ssl.truststorePath}"
+            else ""
+        )
+        val start = System.currentTimeMillis()
+        try {
+            openConnection(conn).close()
+            thisLogger().info("Test Connection: SUCCESS (${System.currentTimeMillis() - start} ms)")
+        } catch (e: Exception) {
+            thisLogger().warn("Test Connection: FAILURE (${System.currentTimeMillis() - start} ms) — ${e.message}", e)
+            throw e
+        }
     }
 
     // ------------------------------------------------------------------ //
@@ -147,13 +162,18 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         val props = Properties().apply {
             setProperty("user", conn.user)
             setProperty("password", conn.password)
-            // Force native TCP binary protocol (ClickHouseProtocol.TCP)
-            setProperty("protocol", "TCP")
+            // Disable ClickHouse-level LZ4 data compression.
+            // Without this, the driver requests LZ4-compressed row data from the server and wraps
+            // the response in Lz4InputStream. Over HTTPS (port 8443 / ClickHouse Cloud) the TLS
+            // layer already handles transport security; if data-level compression is also active the
+            // driver mis-reads the HTTP response body as an LZ4 block, hitting the
+            // "Magic is not correct — expect [-126] but got [37]" IOException.
+            setProperty("compress", "0")
             applySsl(conn.ssl)
         }
 
         val url = conn.jdbcUrl()
-        thisLogger().debug("BenchmarkRunner.openConnection: url=$url ssl=${conn.ssl.enabled}")
+        thisLogger().info("BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} ssl=${conn.ssl.enabled}")
 
         val driverClass = try {
             Class.forName("com.clickhouse.jdbc.ClickHouseDriver", true, javaClass.classLoader)
@@ -185,7 +205,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
 
         setProperty("ssl", "true")
         setProperty("sslmode", ssl.mode)
-        thisLogger().debug("SSL enabled: mode=${ssl.mode} auth=${ssl.auth.ifEmpty { "(none)" }}")
+        thisLogger().info("SSL enabled: mode=${ssl.mode} auth=${ssl.auth.ifEmpty { "(none)" }}")
 
         if (ssl.auth.isNotEmpty())            setProperty("sslauth",                  ssl.auth)
         if (ssl.rootCertPath.isNotEmpty())    setProperty("sslrootcert",              ssl.rootCertPath)
@@ -220,7 +240,34 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         )
     }
 
+    // --- PasswordSafe helpers ---
+
+    fun getPassword(): String = readCredential(CRED_KEY_CONNECTION)
+    fun getSslKeystorePassword(): String = readCredential(CRED_KEY_KEYSTORE)
+    fun getSslTruststorePassword(): String = readCredential(CRED_KEY_TRUSTSTORE)
+
+    fun savePasswords(password: String, keystorePassword: String, truststorePassword: String) {
+        writeCredential(CRED_KEY_CONNECTION, password)
+        writeCredential(CRED_KEY_KEYSTORE, keystorePassword)
+        writeCredential(CRED_KEY_TRUSTSTORE, truststorePassword)
+    }
+
+    private fun readCredential(key: String): String {
+        val attrs = CredentialAttributes(generateServiceName(PLUGIN_SERVICE, key))
+        return PasswordSafe.instance.get(attrs)?.getPasswordAsString() ?: ""
+    }
+
+    private fun writeCredential(key: String, password: String) {
+        val attrs = CredentialAttributes(generateServiceName(PLUGIN_SERVICE, key))
+        PasswordSafe.instance.set(attrs, Credentials("", password))
+    }
+
     companion object {
+        private const val PLUGIN_SERVICE  = "com.github.andrey5608.clickhouse.benchmark.idea.plugin"
+        private const val CRED_KEY_CONNECTION  = "connection"
+        private const val CRED_KEY_KEYSTORE    = "sslKeystore"
+        private const val CRED_KEY_TRUSTSTORE  = "sslTruststore"
+
         fun getInstance(): BenchmarkRunner = service()
     }
 }

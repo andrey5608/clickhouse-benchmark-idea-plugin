@@ -1,13 +1,14 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.actions
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.actions
 
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.DataSourceProvider
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkHistoryService
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkRunner
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.components.service
+import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.ui.Messages
@@ -100,6 +101,7 @@ class RunBenchmarkAction : AnAction() {
             }
 
             override fun onThrowable(error: Throwable) {
+                thisLogger().error("CH Benchmark failed on '${connection.name}'", error)
                 Messages.showErrorDialog(
                     project,
                     error.message ?: error.toString(),

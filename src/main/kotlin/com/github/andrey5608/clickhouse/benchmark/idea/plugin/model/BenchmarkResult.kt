@@ -1,4 +1,4 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.model
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.model
 
 import java.time.Instant
 import java.time.ZoneId

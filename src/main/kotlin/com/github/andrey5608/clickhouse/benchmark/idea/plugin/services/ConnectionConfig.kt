@@ -1,4 +1,4 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.services
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
 data class SslConfig(
     val enabled: Boolean = false,
@@ -21,5 +21,22 @@ data class ConnectionConfig(
     val password: String = "",
     val ssl: SslConfig = SslConfig()
 ) {
-    fun jdbcUrl() = "jdbc:clickhouse://$host:$port/$database"
+    fun jdbcUrl(): String {
+        val params = buildList {
+            add("user=$user")
+            add("password=$password")
+            if (ssl.enabled) add("ssl=true")
+        }
+        return "jdbc:clickhouse://$host:$port/$database?${params.joinToString("&")}"
+    }
+
+    /** Same as [jdbcUrl] but with the password replaced by `*******` — safe to write to logs. */
+    fun jdbcUrlSafe(): String {
+        val params = buildList {
+            add("user=$user")
+            add("password=*******")
+            if (ssl.enabled) add("ssl=true")
+        }
+        return "jdbc:clickhouse://$host:$port/$database?${params.joinToString("&")}"
+    }
 }

@@ -148,6 +148,13 @@ tasks {
     publishPlugin {
         dependsOn(patchChangelog)
     }
+
+    runIde {
+        systemProperty(
+            "idea.log.debug.categories",
+            "#com.github.andrey5608.clickhouse.benchmark.idea.plugin"
+        )
+    }
 }
 
 intellijPlatformTesting {

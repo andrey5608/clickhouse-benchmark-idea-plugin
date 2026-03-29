@@ -1,7 +1,7 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.services
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
-import com.github.andrey5608.clickhousebenchmarkideaplugin.model.BenchmarkResult
-import com.github.andrey5608.clickhousebenchmarkideaplugin.model.IterationStats
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.model.BenchmarkResult
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.model.IterationStats
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.State

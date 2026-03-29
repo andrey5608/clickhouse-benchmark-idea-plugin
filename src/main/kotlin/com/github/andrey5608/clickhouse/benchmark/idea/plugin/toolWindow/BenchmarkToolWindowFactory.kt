@@ -1,8 +1,8 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.toolWindow
 
-import com.github.andrey5608.clickhousebenchmarkideaplugin.model.BenchmarkResult
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService
-import com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.model.BenchmarkResult
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkHistoryService
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkRunner
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionManager
 import com.intellij.openapi.actionSystem.AnAction

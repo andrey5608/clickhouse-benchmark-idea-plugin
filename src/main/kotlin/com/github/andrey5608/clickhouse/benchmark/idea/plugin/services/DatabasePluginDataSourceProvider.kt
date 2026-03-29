@@ -1,4 +1,4 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.services
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager

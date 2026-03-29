@@ -1,4 +1,4 @@
-package com.github.andrey5608.clickhousebenchmarkideaplugin.services
+package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.project.Project

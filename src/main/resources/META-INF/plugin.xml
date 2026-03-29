@@ -1,6 +1,6 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
-    <id>com.github.andrey5608.clickhousebenchmarkideaplugin</id>
+    <id>com.github.andrey5608.clickhouse.benchmark.idea.plugin</id>
     <name>ClickHouse Benchmark</name>
     <vendor>andrey5608</vendor>
 
@@ -21,37 +21,37 @@
 
         <toolWindow
             id="ClickHouse Benchmark"
-            factoryClass="com.github.andrey5608.clickhousebenchmarkideaplugin.toolWindow.BenchmarkToolWindowFactory"
+            factoryClass="com.github.andrey5608.clickhouse.benchmark.idea.plugin.toolWindow.BenchmarkToolWindowFactory"
             anchor="bottom"
             icon="AllIcons.Debugger.Console"/>
 
         <!-- HTTP benchmark engine + persisted settings (host/port/iterations/warmup) -->
         <applicationService
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkRunner"/>
+            serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkRunner"/>
 
         <projectService
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.BenchmarkHistoryService"/>
+            serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkHistoryService"/>
 
         <!--
             DataSourceProvider default impl — returns empty list (Community edition / no DB plugin).
             Overridden in clickhouse-benchmark-database.xml when com.intellij.database is present.
         -->
         <applicationService
-            serviceInterface="com.github.andrey5608.clickhousebenchmarkideaplugin.services.DataSourceProvider"
-            serviceImplementation="com.github.andrey5608.clickhousebenchmarkideaplugin.services.DefaultDataSourceProvider"/>
+            serviceInterface="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider"
+            serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DefaultDataSourceProvider"/>
 
         <applicationConfigurable
             parentId="tools"
-            id="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.BenchmarkSettingsConfigurable"
+            id="com.github.andrey5608.clickhouse.benchmark.idea.plugin.settings.BenchmarkSettingsConfigurable"
             displayName="ClickHouse Benchmark"
-            instance="com.github.andrey5608.clickhousebenchmarkideaplugin.settings.BenchmarkSettingsConfigurable"/>
+            instance="com.github.andrey5608.clickhouse.benchmark.idea.plugin.settings.BenchmarkSettingsConfigurable"/>
 
     </extensions>
 
     <actions>
         <action
             id="ClickHouseBenchmark.Run"
-            class="com.github.andrey5608.clickhousebenchmarkideaplugin.actions.RunBenchmarkAction"
+            class="com.github.andrey5608.clickhouse.benchmark.idea.plugin.actions.RunBenchmarkAction"
             text="Run as ClickHouse Benchmark"
             description="Execute selected SQL via clickhouse-client and record server-side metrics"
             icon="AllIcons.Actions.Execute">
