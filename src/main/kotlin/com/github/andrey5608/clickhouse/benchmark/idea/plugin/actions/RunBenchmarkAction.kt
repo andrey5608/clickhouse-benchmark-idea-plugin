@@ -66,8 +66,15 @@ class RunBenchmarkAction : AnAction() {
     ) {
         val runner = BenchmarkRunner.getInstance()
         val history = BenchmarkHistoryService.getInstance(project)
-        val iterations = runner.state.iterations
-        val warmup = runner.state.warmup
+
+        val dialog = BenchmarkRunDialog(
+            defaultWarmup     = runner.state.warmup,
+            defaultIterations = runner.state.iterations,
+        )
+        if (!dialog.showAndGet()) return   // user cancelled
+
+        val iterations = dialog.iterations
+        val warmup     = dialog.warmup
 
         object : Task.Backgroundable(
             project,
@@ -87,7 +94,9 @@ class RunBenchmarkAction : AnAction() {
                 val result = runner.run(
                     query = query,
                     conn = connection.config,
-                    connectionName = connection.name
+                    connectionName = connection.name,
+                    iterations = iterations,
+                    warmup = warmup
                 )
 
                 indicator.fraction = 1.0
