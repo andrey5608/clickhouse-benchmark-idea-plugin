@@ -40,5 +40,5 @@ src/main/kotlin/.../
 ## JDBC approach
 - URL: `jdbc:ch://host:port/database`
 - Driver class: `com.clickhouse.jdbc.ClickHouseDriver`
-- Sets `query_id` via `SET query_id='...'`, then after query runs `SYSTEM FLUSH LOGS` and queries `system.query_log` for `read_bytes` / `memory_usage`
+- TODO: set `query_id` via `SET query_id='...'`, then after query run queries `system.query_log` for `read_bytes` / `memory_usage`
 - Row count from iterating ResultSet (client-side)
