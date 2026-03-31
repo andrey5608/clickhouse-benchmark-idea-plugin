@@ -52,20 +52,42 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
     }
 
     /**
-     * Collects SSL (and other) JDBC properties from two sources, in increasing priority:
+     * Collects SSL (and other) JDBC properties from three sources, in increasing priority:
      *
      *  1. URL query string  — e.g. jdbc:clickhouse://host:9000/db?ssl=true&sslmode=strict
-     *  2. additionalJdbcProperties — the "Advanced" tab in the DataSource dialog stores
-     *     extra key=value pairs here (ssl, sslmode, sslauth, ssl_keystore_path, …).
+     *  2. IDE SSL config panel (DataSourceSslConfiguration via getSslCfg()) — the "SSL" tab
+     *     in the DataSource dialog; translated to JDBC property names understood by clickhouse-jdbc.
+     *  3. Advanced tab key=value pairs (LocalDataSource.getAdditionalPropertiesMap) — highest
+     *     priority so explicit overrides always win.
      */
     private fun LocalDataSource.resolveAllJdbcProps(): Map<String, String> {
         val fromUrl = parseQueryParams(url ?: "")
-        val fromAdvanced: Map<String, String> = additionalJdbcProperties
-        val merged = fromUrl + fromAdvanced   // additionalJdbcProperties wins on conflict
+        val fromSslCfg = sslCfgToJdbcProps()
+        val fromAdvanced: Map<String, String> = LocalDataSource.getAdditionalPropertiesMap(this)
+        val merged = fromUrl + fromSslCfg + fromAdvanced
         thisLogger().info(
-            "resolveAllJdbcProps '${name}': url_params=${fromUrl.keys} advanced_params=${fromAdvanced.keys}"
+            "resolveAllJdbcProps '${name}': " +
+                    "url_params=${fromUrl.keys} ssl_cfg=${fromSslCfg.keys} advanced_params=${fromAdvanced.keys}"
         )
         return merged
+    }
+
+    /**
+     * Translates the IDE's DataSourceSslConfiguration (the "SSL" tab) to JDBC property keys
+     * understood by clickhouse-jdbc. Returns an empty map when SSL is not configured via that tab.
+     */
+    private fun LocalDataSource.sslCfgToJdbcProps(): Map<String, String> {
+        val cfg = sslCfg?.takeIf { !it.isEmpty } ?: return emptyMap()
+        val props = mutableMapOf<String, String>()
+        props["ssl"] = cfg.myEnabled.toString()
+        if (cfg.myMode != null) {
+            // JdbcSettings.SslMode (REQUIRE / VERIFY_CA / VERIFY_FULL) → clickhouse-jdbc sslmode
+            props["sslmode"] = "strict"
+        }
+        if (!cfg.myCaCertPath.isNullOrEmpty()) props["sslrootcert"] = cfg.myCaCertPath
+        if (!cfg.myClientCertPath.isNullOrEmpty()) props["sslcert"] = cfg.myClientCertPath
+        if (!cfg.myClientKeyPath.isNullOrEmpty()) props["sslkey"] = cfg.myClientKeyPath
+        return props
     }
 
     private fun buildSslConfig(props: Map<String, String>): SslConfig {
