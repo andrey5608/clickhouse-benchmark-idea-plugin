@@ -3,6 +3,7 @@ package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
 import com.intellij.openapi.components.Service
+import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
 
@@ -29,6 +30,14 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
 
     private fun LocalDataSource.toNamedConnection(): DataSourceProvider.NamedConnection {
         val allProps = resolveAllJdbcProps()
+        // If the datasource has no SSL keys at all, fall back to the plugin's SSL settings so that
+        // users who configure ssl/sslmode in Settings > Tools > ClickHouse Benchmark don't have
+        // to duplicate that configuration in every IDE datasource's Advanced tab.
+        val ssl = if (allProps.keys.any { it in SSL_PROP_KEYS }) {
+            buildSslConfig(allProps)
+        } else {
+            service<BenchmarkRunner>().defaultConnection().ssl
+        }
         return DataSourceProvider.NamedConnection(
             name = name,
             config = ConnectionConfig(
@@ -37,7 +46,7 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
                 database = extractDatabase(url ?: ""),
                 user = username,
                 password = "",    // stored in IDE credential store; user can set it in plugin settings
-                ssl = buildSslConfig(allProps)
+                ssl = ssl
             )
         )
     }
@@ -48,22 +57,15 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
      *  1. URL query string  — e.g. jdbc:clickhouse://host:9000/db?ssl=true&sslmode=strict
      *  2. additionalJdbcProperties — the "Advanced" tab in the DataSource dialog stores
      *     extra key=value pairs here (ssl, sslmode, sslauth, ssl_keystore_path, …).
-     *     Accessed via reflection so a change in IntelliJ internals causes a warning,
-     *     not a plugin crash.
      */
     private fun LocalDataSource.resolveAllJdbcProps(): Map<String, String> {
         val fromUrl = parseQueryParams(url ?: "")
-
-        val fromAdvanced: Map<String, String> = runCatching {
-            (javaClass.getMethod("getAdditionalJdbcProperties").invoke(this) as? Map<*, *>)
-                ?.entries
-                ?.associate { (k, v) -> k.toString() to v.toString() }
-                ?: emptyMap()
-        }.onFailure {
-            thisLogger().debug("additionalJdbcProperties not available for '${name}': ${it.message}")
-        }.getOrDefault(emptyMap())
-
-        return fromUrl + fromAdvanced   // additionalJdbcProperties wins on conflict
+        val fromAdvanced: Map<String, String> = additionalJdbcProperties
+        val merged = fromUrl + fromAdvanced   // additionalJdbcProperties wins on conflict
+        thisLogger().info(
+            "resolveAllJdbcProps '${name}': url_params=${fromUrl.keys} advanced_params=${fromAdvanced.keys}"
+        )
+        return merged
     }
 
     private fun buildSslConfig(props: Map<String, String>): SslConfig {
@@ -103,4 +105,16 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
 
     private fun extractDatabase(url: String): String =
         Regex("""://[^/]+/([^?]+)""").find(url)?.groupValues?.get(1)?.ifEmpty { "default" } ?: "default"
+
+    companion object {
+        /** All JDBC property keys that carry SSL configuration for clickhouse-jdbc. */
+        private val SSL_PROP_KEYS = setOf(
+            "ssl", "sslmode", "sslauth",
+            "sslrootcert", "ssl_root_certificate",
+            "sslcert", "ssl_client_certificate",
+            "sslkey", "ssl_client_key",
+            "ssl_keystore_path", "ssl_keystore_password",
+            "ssl_truststore_path", "ssl_truststore_password"
+        )
+    }
 }
