@@ -15,8 +15,6 @@
     -->
     <depends optional="true" config-file="clickhouse-benchmark-database.xml">com.intellij.database</depends>
 
-    <resource-bundle>messages.MyBundle</resource-bundle>
-
     <extensions defaultExtensionNs="com.intellij">
 
         <toolWindow

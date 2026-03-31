@@ -27,15 +27,15 @@ import java.util.Properties
  * Native TCP is activated by passing protocol=TCP in the JDBC connection Properties.
  * SSL/TLS is configured through the ssl* properties in [SslConfig] when enabled.
  *
- * The driver is loaded via [javaClass.classLoader] (the plugin classloader) and used
+ * The driver is loaded via `javaClass.classLoader` (the plugin classloader) and used
  * directly instead of going through [java.sql.DriverManager]. This avoids the thread
  * context classloader issues that arise in IntelliJ's plugin sandbox environment where
  * DriverManager may not see drivers registered by non-system classloaders.
  *
  * Each benchmark run:
  *   1. Opens a single JDBC connection (amortises handshake outside the measurement window).
- *   2. Executes [warmup] iterations and discards their timings.
- *   3. Executes [iterations] measured iterations and records per-iteration [IterationStats].
+ *   2. Executes `warmup` iterations and discards their timings.
+ *   3. Executes `iterations` measured iterations and records per-iteration [IterationStats].
  */
 @State(
     name = "BenchmarkRunner",
@@ -233,7 +233,6 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             )
         }
 
-        @Suppress("UNCHECKED_CAST")
         val driver = driverClass.getDeclaredConstructor().newInstance() as Driver
         return driver.connect(url, props)
             ?: throw SQLException("ClickHouseDriver.connect returned null for $url — driver may not support this URL")

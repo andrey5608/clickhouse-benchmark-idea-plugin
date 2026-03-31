@@ -55,7 +55,6 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
         val fromUrl = parseQueryParams(url ?: "")
 
         val fromAdvanced: Map<String, String> = runCatching {
-            @Suppress("UNCHECKED_CAST")
             (javaClass.getMethod("getAdditionalJdbcProperties").invoke(this) as? Map<*, *>)
                 ?.entries
                 ?.associate { (k, v) -> k.toString() to v.toString() }

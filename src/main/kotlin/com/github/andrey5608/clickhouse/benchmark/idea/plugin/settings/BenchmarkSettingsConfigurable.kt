@@ -125,13 +125,13 @@ class BenchmarkSettingsConfigurable : Configurable {
                 row("Mode:") {
                     sslModeCell = comboBox(listOf("none", "strict", "certificate"))
                         .bindItem({ state.sslMode }, { state.sslMode = it ?: "strict" })
-                        .comment("strict — verify server cert; certificate — mutual TLS")
+                        .comment("Strict — verify server cert; certificate — mutual TLS")
                 }.enabledIf(sslEnabledCell.selected)
                 row("SSL Auth:") {
                     sslAuthCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslAuth }, { state.sslAuth = it })
-                        .comment("sslauth value, e.g. \"certificate\"")
+                        .comment("SSL auth value, e.g. \"certificate\"")
                 }.enabledIf(sslEnabledCell.selected)
 
                 separator()
@@ -141,29 +141,29 @@ class BenchmarkSettingsConfigurable : Configurable {
                     sslRootCertCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslRootCertPath }, { state.sslRootCertPath = it })
-                        .comment("sslrootcert — path to CA .crt / .pem file")
+                        .comment("SSL root cert — path to CA .crt / .pem file")
                 }.enabledIf(sslEnabledCell.selected)
                 row("Client certificate:") {
                     sslClientCertCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslClientCertPath }, { state.sslClientCertPath = it })
-                        .comment("sslcert — path to client .crt / .pem file")
+                        .comment("SSL cert — path to client .crt / .pem file")
                 }.enabledIf(sslEnabledCell.selected)
                 row("Client key:") {
                     sslClientKeyCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslClientKeyPath }, { state.sslClientKeyPath = it })
-                        .comment("sslkey — path to client private key file")
+                        .comment("SSL key — path to client private key file")
                 }.enabledIf(sslEnabledCell.selected)
 
                 separator()
-                row { label("Java Keystore / Truststore") }
+                row { label("Java keystore / truststore") }
 
                 row("Keystore path:") {
                     sslKeystorePathCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslKeystorePath }, { state.sslKeystorePath = it })
-                        .comment("ssl_keystore_path — .jks or .p12 file")
+                        .comment("SSL keystore path — .jks or .p12 file")
                 }.enabledIf(sslEnabledCell.selected)
                 row("Keystore password:") {
                     cell(keystorePasswordField).columns(COLUMNS_MEDIUM)
@@ -172,7 +172,7 @@ class BenchmarkSettingsConfigurable : Configurable {
                     sslTruststorePathCell = textField()
                         .columns(COLUMNS_MEDIUM)
                         .bindText({ state.sslTruststorePath }, { state.sslTruststorePath = it })
-                        .comment("ssl_truststore_path — .jks or .p12 file")
+                        .comment("SSL truststore path — .jks or .p12 file")
                 }.enabledIf(sslEnabledCell.selected)
                 row("Truststore password:") {
                     cell(truststorePasswordField).columns(COLUMNS_MEDIUM)

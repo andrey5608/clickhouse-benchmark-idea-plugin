@@ -5,7 +5,7 @@ import com.intellij.openapi.project.Project
 
 /**
  * Fallback implementation used on IDEA Community (where com.intellij.database is absent).
- * Returns no connections — [RunBenchmarkAction] will use BenchmarkRunner's fallback settings instead.
+ * Returns no connections — RunBenchmarkAction will use BenchmarkRunner's fallback settings instead.
  */
 @Service(Service.Level.APP)
 class DefaultDataSourceProvider : DataSourceProvider {

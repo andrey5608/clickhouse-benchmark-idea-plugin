@@ -10,7 +10,7 @@ import javax.swing.JComponent
 /**
  * A lightweight dialog shown before each benchmark run so that warmup and
  * iteration counts can be adjusted without opening the global settings page.
- * Values are pre-populated from the global defaults stored in [BenchmarkRunner.State].
+ * Values are pre-populated from the global defaults stored in BenchmarkRunner.State.
  */
 class BenchmarkRunDialog(
     defaultWarmup: Int,

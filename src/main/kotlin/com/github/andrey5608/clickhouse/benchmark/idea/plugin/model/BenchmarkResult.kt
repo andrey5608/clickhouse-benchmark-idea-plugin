@@ -27,7 +27,6 @@ data class BenchmarkResult(
 
     // Server-side read stats are stable across iterations for the same query
     val rowsRead: Long get() = iterations.firstOrNull()?.rowsRead ?: 0L
-    val bytesRead: Long get() = iterations.firstOrNull()?.bytesRead ?: 0L
 
     val queryPreview: String
         get() = query.trimIndent().replace('\n', ' ').let {
