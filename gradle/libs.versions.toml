@@ -3,7 +3,7 @@
 junit = "4.13.2"
 opentest4j = "1.3.0"
 slf4j = "1.7.36"
-clickhouseJdbc = "0.6.5"
+clickhouseJdbc = "0.9.8"
 apacheHttpClient5 = "5.5"
 # plugins
 changelog = "2.5.0"
