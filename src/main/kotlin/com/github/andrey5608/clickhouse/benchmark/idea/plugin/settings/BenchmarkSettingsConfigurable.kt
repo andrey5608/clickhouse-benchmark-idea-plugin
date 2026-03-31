@@ -2,7 +2,9 @@ package com.github.andrey5608.clickhouse.benchmark.idea.plugin.settings
 
 import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.BenchmarkRunner
 import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.ConnectionConfig
+import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider
 import com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.SslConfig
+import com.intellij.openapi.components.service
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
@@ -37,6 +39,7 @@ class BenchmarkSettingsConfigurable : Configurable {
 
     private lateinit var savePasswordCell: Cell<JBCheckBox>
     private lateinit var sslEnabledCell: Cell<JBCheckBox>
+    private var useIdeDataSourceCell: Cell<JBCheckBox>? = null
 
     // Cell references for connection fields — used by currentConnectionConfig() so that
     // "Test Connection" reads live form values without calling settingsPanel.apply().
@@ -55,6 +58,14 @@ class BenchmarkSettingsConfigurable : Configurable {
     private val settingsPanel by lazy {
         panel {
             group("Connection") {
+                val supportsDatasources = service<DataSourceProvider>().supportsIdeDatasources()
+                if (supportsDatasources) {
+                    row {
+                        useIdeDataSourceCell = checkBox("Use settings from IDE Database Connection")
+                            .bindSelected({ state.useIdeDataSource }, { state.useIdeDataSource = it })
+                            .comment("When enabled, connection is taken from the IDE Database tool window")
+                    }
+                }
                 row("Host:") {
                     hostCell = textField()
                         .columns(COLUMNS_MEDIUM)
@@ -91,6 +102,18 @@ class BenchmarkSettingsConfigurable : Configurable {
                         .columns(COLUMNS_SHORT)
                         .bindIntText({ state.socketTimeoutSeconds }, { state.socketTimeoutSeconds = it })
                         .comment("Read timeout per query. Default: 300 s (5 min)")
+                }
+                row("Connection timeout (s):") {
+                    intTextField(1..3600)
+                        .columns(COLUMNS_SHORT)
+                        .bindIntText({ state.connectionTimeoutSeconds }, { state.connectionTimeoutSeconds = it })
+                        .comment("TCP connect timeout. Default: 300 s")
+                }
+                row("Data transfer timeout (s):") {
+                    intTextField(1..3600)
+                        .columns(COLUMNS_SHORT)
+                        .bindIntText({ state.dataTransferTimeoutSeconds }, { state.dataTransferTimeoutSeconds = it })
+                        .comment("Data transfer timeout. Default: 300 s")
                 }
             }
 

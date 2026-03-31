@@ -8,4 +8,7 @@ interface DataSourceProvider {
 
     /** Returns ClickHouse connections from the IDE's Database tool window, or empty list. */
     fun getConnections(project: Project): List<NamedConnection>
+
+    /** True only in Ultimate where com.intellij.database is available. */
+    fun supportsIdeDatasources(): Boolean = false
 }

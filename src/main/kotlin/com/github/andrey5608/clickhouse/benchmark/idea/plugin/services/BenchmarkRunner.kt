@@ -54,6 +54,15 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         var savePassword: Boolean = false,
         /** Socket (read) timeout in seconds. Default 300 s = 5 min. */
         var socketTimeoutSeconds: Int = 300,
+        /** TCP connect timeout in seconds. Default 300 s. */
+        var connectionTimeoutSeconds: Int = 300,
+        /** Data-transfer timeout in seconds. Default 300 s. */
+        var dataTransferTimeoutSeconds: Int = 300,
+        /**
+         * Ultimate only: when true, connection settings are taken from the IDE
+         * Database tool window instead of the plugin settings form.
+         */
+        var useIdeDataSource: Boolean = true,
         // SSL — flat fields for clean XML serialisation
         var sslEnabled: Boolean = false,
         var sslMode: String = "strict",
@@ -195,13 +204,19 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
             setProperty("compress", "0")
             // Socket (read) timeout in milliseconds. Avoids silent hangs on slow/unresponsive hosts.
             setProperty("socket_timeout", (myState.socketTimeoutSeconds * 1_000).toString())
+            // TCP connect timeout in milliseconds.
+            setProperty("connection_timeout", (myState.connectionTimeoutSeconds * 1_000).toString())
+            // Data-transfer timeout in milliseconds.
+            setProperty("dataTransferTimeout", (myState.dataTransferTimeoutSeconds * 1_000).toString())
             applySsl(conn.ssl)
         }
 
         val url = conn.jdbcUrl()
         thisLogger().info(
             "BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} " +
-                    "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds}"
+                    "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds} " +
+                    "connection_timeout_s=${myState.connectionTimeoutSeconds} " +
+                    "dataTransferTimeout_s=${myState.dataTransferTimeoutSeconds}"
         )
 
         val driverClass = try {

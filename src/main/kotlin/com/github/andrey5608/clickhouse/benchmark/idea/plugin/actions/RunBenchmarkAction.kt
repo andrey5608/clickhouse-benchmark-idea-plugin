@@ -36,7 +36,9 @@ class RunBenchmarkAction : AnAction() {
                 return
             }
 
-        val connections = service<DataSourceProvider>().getConnections(project)
+        val provider = service<DataSourceProvider>()
+        val useIde = provider.supportsIdeDatasources() && BenchmarkRunner.getInstance().state.useIdeDataSource
+        val connections = if (useIde) provider.getConnections(project) else emptyList()
         when {
             connections.isEmpty() -> runWithFallback(project, query)
             connections.size == 1 -> runBenchmark(project, query, connections.first())
@@ -93,8 +95,20 @@ class RunBenchmarkAction : AnAction() {
                     iterations = iterations,
                     warmup = warmup,
                     onProgress = { done, total ->
-                        val phase = if (done <= warmup) "Warmup" else "Benchmarking"
-                        indicator.text = "$phase… ($done / $total)"
+                        val phase: String
+                        val totalEffective: Int
+                        val doneEffective: Int
+                        if (done <= warmup) {
+                            phase = "Warmup"
+                            totalEffective = warmup
+                            doneEffective = done
+                        }
+                        else {
+                            phase = "Benchmarking"
+                            totalEffective = (total - warmup).coerceAtLeast(0)
+                            doneEffective = (done - warmup).coerceAtLeast(0)
+                        }
+                        indicator.text = "$phase… ($doneEffective / $totalEffective)"
                         indicator.fraction = done.toDouble() / total
                     }
                 )

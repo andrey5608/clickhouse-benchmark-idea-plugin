@@ -13,6 +13,8 @@ import com.intellij.openapi.project.Project
 @Service(Service.Level.APP)
 class DatabasePluginDataSourceProvider : DataSourceProvider {
 
+    override fun supportsIdeDatasources() = true
+
     override fun getConnections(project: Project): List<DataSourceProvider.NamedConnection> =
         LocalDataSourceManager.getInstance(project)
             .dataSources
