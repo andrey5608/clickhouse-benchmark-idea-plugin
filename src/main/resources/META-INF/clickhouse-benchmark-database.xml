@@ -1,0 +1,16 @@
+<!--
+    Optional extension descriptor loaded only when com.intellij.database is available (IDEA Ultimate).
+    All classes referenced here may safely import com.intellij.database.* — they are never
+    classloaded on Community where the database plugin is absent.
+-->
+<idea-plugin>
+    <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Replaces DefaultDataSourceProvider with the Ultimate-aware implementation -->
+        <applicationService
+                serviceInterface="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DataSourceProvider"
+                serviceImplementation="com.github.andrey5608.clickhouse.benchmark.idea.plugin.services.DatabasePluginDataSourceProvider"
+                overrides="true"/>
+
+    </extensions>
+</idea-plugin>

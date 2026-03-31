@@ -31,12 +31,25 @@ repositories {
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/version_catalogs.html
 dependencies {
+    // ClickHouse JDBC packages the driver itself, but still eagerly links a few optional
+    // Apache HttpClient 5 classes during connection setup. Bundle HttpClient explicitly so
+    // the plugin classloader can resolve those symbols inside the sandbox.
+    // slf4j-api is excluded because IntelliJ Platform provides it.
+    implementation(libs.clickhouse.jdbc) {
+        exclude(group = "org.slf4j")
+    }
+    implementation(libs.apache.httpclient5)
+    // clickhouse-client transitively pulls SLF4J 1.x API; provide the NOP binding so
+    // SLF4J 1.x doesn't print "Failed to load class StaticLoggerBinder" at startup.
+    runtimeOnly(libs.slf4j.simple)
+
     testImplementation(libs.junit)
     testImplementation(libs.opentest4j)
+    testRuntimeOnly(libs.slf4j.simple)
 
     // IntelliJ Platform Gradle Plugin Dependencies Extension - read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-dependencies-extension.html
     intellijPlatform {
-        intellijIdea(providers.gradleProperty("platformVersion"))
+        intellijIdeaUltimate(providers.gradleProperty("platformVersion"))
 
         // Plugin Dependencies. Uses `platformBundledPlugins` property from the gradle.properties file for bundled IntelliJ Platform plugins.
         bundledPlugins(providers.gradleProperty("platformBundledPlugins").map { it.split(',') })
@@ -99,7 +112,8 @@ intellijPlatform {
         // The pluginVersion is based on the SemVer (https://semver.org) and supports pre-release labels, like 2.1.7-alpha.3
         // Specify pre-release label to publish the plugin in a custom Release Channel automatically. Read more:
         // https://plugins.jetbrains.com/docs/intellij/publishing-plugin.html#specifying-a-release-channel
-        channels = providers.gradleProperty("pluginVersion").map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
+        channels = providers.gradleProperty("pluginVersion")
+            .map { listOf(it.substringAfter('-', "").substringBefore('.').ifEmpty { "default" }) }
     }
 
     pluginVerification {
@@ -134,6 +148,13 @@ tasks {
 
     publishPlugin {
         dependsOn(patchChangelog)
+    }
+
+    runIde {
+        systemProperty(
+            "idea.log.debug.categories",
+            "#com.github.andrey5608.clickhouse.benchmark.idea.plugin"
+        )
     }
 }
 
