@@ -6,6 +6,8 @@ import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
 import com.intellij.openapi.project.Project
+import com.intellij.psi.PsiFile
+import com.intellij.sql.psi.SqlPsiFacade
 
 /**
  * Ultimate-only. Loaded via clickhouse-benchmark-database.xml when com.intellij.database is present.
@@ -21,6 +23,25 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
             .dataSources
             .filter { it.isClickHouse() }
             .map { it.toNamedConnection() }
+
+    /**
+     * Returns the single ClickHouse connection that the given SQL file is attached to, or null if
+     * the file has no datasource, multiple datasources, or no ClickHouse datasource.
+     *
+     * This is used to skip the connection-chooser popup when the user runs a benchmark from a
+     * Query Console that is already bound to a specific connection.
+     */
+    override fun getContextConnection(project: Project, psiFile: PsiFile): DataSourceProvider.NamedConnection? {
+        val dataSources = SqlPsiFacade.getInstance(project).getDataSources(psiFile)
+        val clickHouseSources = dataSources
+            .mapNotNull { it.delegate as? LocalDataSource }
+            .filter { it.isClickHouse() }
+        thisLogger().info(
+            "getContextConnection: file='${psiFile.name}' " +
+                    "total_sources=${dataSources.size} clickhouse_sources=${clickHouseSources.size}"
+        )
+        return if (clickHouseSources.size == 1) clickHouseSources.first().toNamedConnection() else null
+    }
 
     private fun LocalDataSource.isClickHouse(): Boolean {
         val url = url ?: return false
@@ -52,22 +73,32 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
     }
 
     /**
-     * Collects SSL (and other) JDBC properties from three sources, in increasing priority:
+     * Collects SSL (and other) JDBC properties from four sources, in increasing priority:
      *
      *  1. URL query string  — e.g. jdbc:clickhouse://host:9000/db?ssl=true&sslmode=strict
      *  2. IDE SSL config panel (DataSourceSslConfiguration via getSslCfg()) — the "SSL" tab
      *     in the DataSource dialog; translated to JDBC property names understood by clickhouse-jdbc.
-     *  3. Advanced tab key=value pairs (LocalDataSource.getAdditionalPropertiesMap) — highest
-     *     priority so explicit overrides always win.
+     *  3. Advanced tab JDBC connection properties (LocalDataSource.getConnectionProperties()) —
+     *     the key=value JDBC properties set by the user in the "Advanced" tab of the datasource
+     *     dialog; these are passed directly to the JDBC driver and are NOT part of the URL.
+     *  4. IntelliJ-internal additional properties (LocalDataSource.getAdditionalPropertiesMap) —
+     *     highest priority so any explicit overrides win. Note: in practice these contain
+     *     IntelliJ cloud/Kubernetes metadata (e.g. com.intellij.clouds.*) and rarely carry SSL
+     *     settings, but are kept for completeness.
      */
     private fun LocalDataSource.resolveAllJdbcProps(): Map<String, String> {
         val fromUrl = parseQueryParams(url ?: "")
         val fromSslCfg = sslCfgToJdbcProps()
+        // JDBC connection properties set in the "Advanced" tab of the datasource dialog.
+        // getConnectionProperties() returns java.util.Properties (never null).
+        val fromConnProps: Map<String, String> = connectionProperties
+            .entries.associate { (k, v) -> k.toString() to v.toString() }
         val fromAdvanced: Map<String, String> = LocalDataSource.getAdditionalPropertiesMap(this)
-        val merged = fromUrl + fromSslCfg + fromAdvanced
+        val merged = fromUrl + fromSslCfg + fromConnProps + fromAdvanced
         thisLogger().info(
             "resolveAllJdbcProps '${name}': " +
-                    "url_params=${fromUrl.keys} ssl_cfg=${fromSslCfg.keys} advanced_params=${fromAdvanced.keys}"
+                    "url_params=${fromUrl.keys} ssl_cfg=${fromSslCfg.keys} " +
+                    "conn_props=${fromConnProps.keys} advanced_params=${fromAdvanced.keys}"
         )
         return merged
     }
