@@ -50,7 +50,7 @@
         <action
                 id="ClickHouseBenchmark.Run"
                 class="com.github.andrey5608.clickhouse.benchmark.idea.plugin.actions.RunBenchmarkAction"
-                text="Run as ClickHouse Benchmark"
+                text="Run ClickHouse Benchmark"
                 description="Execute selected SQL via clickhouse-client and record server-side metrics"
                 icon="AllIcons.Actions.Execute">
             <add-to-group group-id="ToolsMenu" anchor="last"/>

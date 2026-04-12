@@ -37,8 +37,22 @@ class RunBenchmarkAction : AnAction() {
             }
 
         val provider = service<DataSourceProvider>()
-        val useIde = provider.supportsIdeDatasources() && BenchmarkRunner.getInstance().state.useIdeDataSource
-        val connections = if (useIde) provider.getConnections(project) else emptyList()
+        val isUltimateIde = provider.supportsIdeDatasources() && BenchmarkRunner.getInstance().state.useIdeDataSource
+
+        // When the query is in a Query Console that is already bound to a specific datasource,
+        // use that datasource directly without showing the chooser popup.
+        if (isUltimateIde) {
+            val psiFile = e.getData(CommonDataKeys.PSI_FILE)
+            if (psiFile != null) {
+                val contextConnection = provider.getContextConnection(project, psiFile)
+                if (contextConnection != null) {
+                    runBenchmark(project, query, contextConnection)
+                    return
+                }
+            }
+        }
+
+        val connections = if (isUltimateIde) provider.getConnections(project) else emptyList()
         when {
             connections.isEmpty() -> runWithFallback(project, query)
             connections.size == 1 -> runBenchmark(project, query, connections.first())

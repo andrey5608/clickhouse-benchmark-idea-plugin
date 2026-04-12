@@ -39,4 +39,5 @@ data class ConnectionConfig(
         }
         return "jdbc:clickhouse://$host:$port/$database?${params.joinToString("&")}"
     }
+
 }
