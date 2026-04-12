@@ -1,7 +1,10 @@
 package com.github.andrey5608.clickhouse.benchmark.idea.plugin.services
 
+import com.intellij.credentialStore.CredentialAttributes
+import com.intellij.credentialStore.generateServiceName
 import com.intellij.database.dataSource.LocalDataSource
 import com.intellij.database.dataSource.LocalDataSourceManager
+import com.intellij.ide.passwordSafe.PasswordSafe
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.components.service
 import com.intellij.openapi.diagnostic.thisLogger
@@ -66,10 +69,46 @@ class DatabasePluginDataSourceProvider : DataSourceProvider {
                 port = extractPort(url ?: ""),
                 database = extractDatabase(url ?: ""),
                 user = username,
-                password = "",    // stored in IDE credential store; user can set it in plugin settings
+                password = resolvePassword(),
                 ssl = ssl
             )
         )
+    }
+
+    /**
+     * Resolves the JDBC password for this datasource using a two-step fallback:
+     *
+     *  1. IntelliJ's PasswordSafe — where DataGrip/Database Tools stores the password that the
+     *     user entered in the IDE's datasource dialog ("General" tab → Password field).
+     *     Uses [generateServiceName] with the "DataGrip" subsystem and the datasource's unique ID,
+     *     which is the key format used by IntelliJ's database plugin.
+     *  2. Plugin settings password (Settings > Tools > ClickHouse Benchmark) — fallback for the
+     *     case where the IDE credential store returns nothing (different storage type, blank
+     *     password, or key format mismatch).
+     *
+     * A warning is logged when no password is found so the user can configure it.
+     */
+    private fun LocalDataSource.resolvePassword(): String {
+        // Step 1: try IntelliJ's PasswordSafe (where the IDE stores the datasource password).
+        val attrs = CredentialAttributes(generateServiceName("DataGrip", uniqueId), username)
+        val idePassword = PasswordSafe.instance.get(attrs)?.getPasswordAsString()
+        if (!idePassword.isNullOrEmpty()) {
+            thisLogger().info("resolvePassword '${name}': using IDE credential store (DataGrip)")
+            return idePassword
+        }
+
+        // Step 2: fall back to the password configured in plugin settings.
+        val pluginPassword = service<BenchmarkRunner>().getPassword()
+        if (pluginPassword.isNotEmpty()) {
+            thisLogger().info("resolvePassword '${name}': using plugin settings password")
+            return pluginPassword
+        }
+
+        thisLogger().warn(
+            "resolvePassword '${name}': no password found. " +
+                    "Set it in Settings > Tools > ClickHouse Benchmark, or re-enter it in the IDE datasource dialog."
+        )
+        return ""
     }
 
     /**
