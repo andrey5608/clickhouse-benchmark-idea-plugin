@@ -40,29 +40,4 @@ data class ConnectionConfig(
         return "jdbc:clickhouse://$host:$port/$database?${params.joinToString("&")}"
     }
 
-    /**
-     * Builds the equivalent `clickhouse-client` CLI command for manual testing.
-     * The password is replaced with `'*******'` so this string is safe to log.
-     */
-    fun clickhouseClientCommand(): String {
-        val args = buildList {
-            add("clickhouse-client")
-            add("--host=$host")
-            add("--port=$port")
-            add("--database=$database")
-            add("--user=$user")
-            add("--password='*******'")
-            if (ssl.enabled) {
-                add("--secure")
-                val sslAuth = ssl.auth.ifEmpty { "false" }
-                if (sslAuth == "false") add("--no-verify")
-                if (ssl.mode == "none") add("--accept-invalid-certificate")
-                if (ssl.rootCertPath.isNotEmpty()) add("--ssl-ca-cert-file='${ssl.rootCertPath}'")
-                if (ssl.clientCertPath.isNotEmpty()) add("--ssl-cert-file='${ssl.clientCertPath}'")
-                if (ssl.clientKeyPath.isNotEmpty()) add("--ssl-key-file='${ssl.clientKeyPath}'")
-            }
-            add("--query='SELECT 1'")
-        }
-        return args.joinToString(" ")
-    }
 }

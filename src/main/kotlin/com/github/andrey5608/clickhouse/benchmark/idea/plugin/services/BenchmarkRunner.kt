@@ -212,13 +212,20 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
         }
 
         val url = conn.jdbcUrl()
+        val ssl = conn.ssl
         thisLogger().info(
             "BenchmarkRunner.openConnection: url=${conn.jdbcUrlSafe()} " +
-                    "ssl=${conn.ssl.enabled} socket_timeout_s=${myState.socketTimeoutSeconds} " +
+                    "ssl.enabled=${ssl.enabled} ssl.mode=${ssl.mode} " +
+                    "ssl.auth=${ssl.auth.ifEmpty { "(default=false)" }} " +
+                    "ssl.rootCert=${ssl.rootCertPath.ifEmpty { "(none)" }} " +
+                    "ssl.clientCert=${ssl.clientCertPath.ifEmpty { "(none)" }} " +
+                    "ssl.clientKey=${ssl.clientKeyPath.ifEmpty { "(none)" }} " +
+                    "ssl.keystore=${ssl.keystorePath.ifEmpty { "(none)" }} " +
+                    "ssl.truststore=${ssl.truststorePath.ifEmpty { "(none)" }} " +
+                    "socket_timeout_s=${myState.socketTimeoutSeconds} " +
                     "connection_timeout_s=${myState.connectionTimeoutSeconds} " +
                     "dataTransferTimeout_s=${myState.dataTransferTimeoutSeconds}"
         )
-        thisLogger().info("CLI equivalent: ${conn.clickhouseClientCommand()}")
 
         val driverClass = try {
             Class.forName("com.clickhouse.jdbc.ClickHouseDriver", true, javaClass.classLoader)
