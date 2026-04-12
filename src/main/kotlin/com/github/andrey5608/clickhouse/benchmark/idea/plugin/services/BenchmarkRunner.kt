@@ -218,6 +218,7 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
                     "connection_timeout_s=${myState.connectionTimeoutSeconds} " +
                     "dataTransferTimeout_s=${myState.dataTransferTimeoutSeconds}"
         )
+        thisLogger().info("CLI equivalent: ${conn.clickhouseClientCommand()}")
 
         val driverClass = try {
             Class.forName("com.clickhouse.jdbc.ClickHouseDriver", true, javaClass.classLoader)
@@ -248,9 +249,11 @@ class BenchmarkRunner : PersistentStateComponent<BenchmarkRunner.State> {
 
         setProperty("ssl", "true")
         setProperty("sslmode", ssl.mode)
-        thisLogger().info("SSL enabled: mode=${ssl.mode} auth=${ssl.auth.ifEmpty { "(none)" }}")
-
-        if (ssl.auth.isNotEmpty()) setProperty("sslauth", ssl.auth)
+        // sslauth: "false" disables SSL client-certificate auth and keeps password auth active.
+        // Always emit it so the server never gets an ambiguous "not set" state.
+        val sslAuth = ssl.auth.ifEmpty { "false" }
+        setProperty("sslauth", sslAuth)
+        thisLogger().info("SSL enabled: mode=${ssl.mode} auth=$sslAuth")
         if (ssl.rootCertPath.isNotEmpty()) setProperty("sslrootcert", ssl.rootCertPath)
         if (ssl.clientCertPath.isNotEmpty()) setProperty("sslcert", ssl.clientCertPath)
         if (ssl.clientKeyPath.isNotEmpty()) setProperty("sslkey", ssl.clientKeyPath)
